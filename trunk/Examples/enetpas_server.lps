@@ -1,0 +1,398 @@
+<?xml version="1.0"?>
+<CONFIG>
+  <ProjectSession>
+    <PathDelim Value="\"/>
+    <Version Value="9"/>
+    <BuildModes Active="Default"/>
+    <Units Count="33">
+      <Unit0>
+        <Filename Value="enetpas_server.lpr"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="enetpas_server"/>
+        <WindowIndex Value="0"/>
+        <TopLine Value="1"/>
+        <CursorPos X="1" Y="20"/>
+        <UsageCount Value="83"/>
+      </Unit0>
+      <Unit1>
+        <Filename Value="enetpas_server_main.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="Form1"/>
+        <HasResources Value="True"/>
+        <ResourceBaseClass Value="Form"/>
+        <UnitName Value="enetpas_server_main"/>
+        <EditorIndex Value="0"/>
+        <WindowIndex Value="0"/>
+        <TopLine Value="1"/>
+        <CursorPos X="63" Y="51"/>
+        <UsageCount Value="83"/>
+        <Loaded Value="True"/>
+        <LoadedDesigner Value="True"/>
+      </Unit1>
+      <Unit2>
+        <Filename Value="enet-delphi\uenetclass.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="uENetClass"/>
+        <IsVisibleTab Value="True"/>
+        <EditorIndex Value="1"/>
+        <WindowIndex Value="0"/>
+        <TopLine Value="1"/>
+        <CursorPos X="66" Y="104"/>
+        <UsageCount Value="29"/>
+        <Loaded Value="True"/>
+      </Unit2>
+      <Unit3>
+        <Filename Value="enet-delphi\enet.pas"/>
+        <UnitName Value="enet"/>
+        <WindowIndex Value="0"/>
+        <TopLine Value="1"/>
+        <CursorPos X="1" Y="8"/>
+        <UsageCount Value="7"/>
+      </Unit3>
+      <Unit4>
+        <Filename Value="enet-delphi\enet_callbacks.pas"/>
+        <UnitName Value="enet_callbacks"/>
+        <WindowIndex Value="0"/>
+        <TopLine Value="1"/>
+        <CursorPos X="34" Y="9"/>
+        <UsageCount Value="9"/>
+      </Unit4>
+      <Unit5>
+        <Filename Value="enet-delphi\enet_consts.pas"/>
+        <UnitName Value="enet_consts"/>
+        <WindowIndex Value="0"/>
+        <TopLine Value="623"/>
+        <CursorPos X="7" Y="635"/>
+        <UsageCount Value="30"/>
+      </Unit5>
+      <Unit6>
+        <Filename Value="enet-delphi\enet_socket.pas"/>
+        <UnitName Value="enet_socket"/>
+        <WindowIndex Value="0"/>
+        <TopLine Value="66"/>
+        <CursorPos X="11" Y="43"/>
+        <UsageCount Value="19"/>
+      </Unit6>
+      <Unit7>
+        <Filename Value="enet-delphi\enet_protocol.pas"/>
+        <UnitName Value="enet_protocol"/>
+        <WindowIndex Value="0"/>
+        <TopLine Value="1400"/>
+        <CursorPos X="47" Y="1415"/>
+        <UsageCount Value="27"/>
+      </Unit7>
+      <Unit8>
+        <Filename Value="enet-delphi\enet_peer.pas"/>
+        <UnitName Value="enet_peer"/>
+        <WindowIndex Value="0"/>
+        <TopLine Value="41"/>
+        <CursorPos X="38" Y="29"/>
+        <UsageCount Value="18"/>
+      </Unit8>
+      <Unit9>
+        <Filename Value="enet-delphi\enet_list.pas"/>
+        <UnitName Value="enet_list"/>
+        <WindowIndex Value="0"/>
+        <TopLine Value="1"/>
+        <CursorPos X="12" Y="7"/>
+        <UsageCount Value="13"/>
+      </Unit9>
+      <Unit10>
+        <Filename Value="enet-delphi\enet_host.pas"/>
+        <UnitName Value="enet_host"/>
+        <WindowIndex Value="0"/>
+        <TopLine Value="1"/>
+        <CursorPos X="67" Y="27"/>
+        <UsageCount Value="20"/>
+      </Unit10>
+      <Unit11>
+        <Filename Value="C:\development\fpc\rtl\win\winsock2.pp"/>
+        <UnitName Value="WinSock2"/>
+        <WindowIndex Value="0"/>
+        <TopLine Value="21"/>
+        <CursorPos X="3" Y="37"/>
+        <UsageCount Value="9"/>
+      </Unit11>
+      <Unit12>
+        <Filename Value="enet-delphi\enet_packet.pas"/>
+        <UnitName Value="enet_packet"/>
+        <WindowIndex Value="0"/>
+        <TopLine Value="27"/>
+        <CursorPos X="32" Y="45"/>
+        <UsageCount Value="9"/>
+      </Unit12>
+      <Unit13>
+        <Filename Value="C:\development\fpc\rtl\win\sockets.pp"/>
+        <UnitName Value="Sockets"/>
+        <WindowIndex Value="0"/>
+        <TopLine Value="43"/>
+        <CursorPos X="10" Y="53"/>
+        <UsageCount Value="9"/>
+      </Unit13>
+      <Unit14>
+        <Filename Value="C:\development\fpc\rtl\inc\socketsh.inc"/>
+        <WindowIndex Value="0"/>
+        <TopLine Value="133"/>
+        <CursorPos X="1" Y="1"/>
+        <UsageCount Value="10"/>
+      </Unit14>
+      <Unit15>
+        <Filename Value="C:\development\fpc\packages\winunits-base\src\mmsystem.pp"/>
+        <UnitName Value="mmsystem"/>
+        <WindowIndex Value="0"/>
+        <TopLine Value="2525"/>
+        <CursorPos X="10" Y="2538"/>
+        <UsageCount Value="10"/>
+      </Unit15>
+      <Unit16>
+        <Filename Value="C:\development\fpc\rtl\unix\baseunix.pp"/>
+        <UnitName Value="BaseUnix"/>
+        <WindowIndex Value="0"/>
+        <TopLine Value="5"/>
+        <CursorPos X="5" Y="22"/>
+        <UsageCount Value="7"/>
+      </Unit16>
+      <Unit17>
+        <Filename Value="C:\development\fpc\rtl\linux\oldlinux.pp"/>
+        <UnitName Value="oldlinux"/>
+        <WindowIndex Value="0"/>
+        <TopLine Value="268"/>
+        <CursorPos X="17" Y="1609"/>
+        <UsageCount Value="7"/>
+      </Unit17>
+      <Unit18>
+        <Filename Value="C:\development\fpc\rtl\inc\sockets.inc"/>
+        <WindowIndex Value="0"/>
+        <TopLine Value="1"/>
+        <CursorPos X="3" Y="318"/>
+        <UsageCount Value="7"/>
+      </Unit18>
+      <Unit19>
+        <Filename Value="C:\development\fpc\rtl\unix\unixsockets.pas"/>
+        <UnitName Value="unixsockets"/>
+        <WindowIndex Value="0"/>
+        <TopLine Value="1"/>
+        <CursorPos X="12" Y="12"/>
+        <UsageCount Value="7"/>
+      </Unit19>
+      <Unit20>
+        <Filename Value="D:\lazarus\components\bgrabitmap\bgrabitmap.pas"/>
+        <UnitName Value="BGRABitmap"/>
+        <WindowIndex Value="0"/>
+        <TopLine Value="40"/>
+        <CursorPos X="1" Y="1"/>
+        <UsageCount Value="7"/>
+      </Unit20>
+      <Unit21>
+        <Filename Value="D:\lazarus\components\bgrabitmap\bgrabitmaptypes.pas"/>
+        <UnitName Value="BGRABitmapTypes"/>
+        <WindowIndex Value="0"/>
+        <TopLine Value="2678"/>
+        <CursorPos X="4" Y="2702"/>
+        <UsageCount Value="7"/>
+      </Unit21>
+      <Unit22>
+        <Filename Value="C:\development\lazarus\components\fpvectorial\fpvectorial.pas"/>
+        <UnitName Value="fpvectorial"/>
+        <WindowIndex Value="0"/>
+        <TopLine Value="1185"/>
+        <CursorPos X="10" Y="1205"/>
+        <UsageCount Value="7"/>
+      </Unit22>
+      <Unit23>
+        <Filename Value="enet-delphi\enet-master\packet.c"/>
+        <WindowIndex Value="0"/>
+        <TopLine Value="1"/>
+        <CursorPos X="1" Y="1"/>
+        <UsageCount Value="7"/>
+        <DefaultSyntaxHighlighter Value="C++"/>
+      </Unit23>
+      <Unit24>
+        <Filename Value="C:\development\fpc\rtl\objpas\objpas.pp"/>
+        <UnitName Value="objpas"/>
+        <WindowIndex Value="0"/>
+        <TopLine Value="26"/>
+        <CursorPos X="8" Y="41"/>
+        <UsageCount Value="8"/>
+      </Unit24>
+      <Unit25>
+        <Filename Value="C:\development\lazarus\lcl\customtimer.pas"/>
+        <UnitName Value="CustomTimer"/>
+        <WindowIndex Value="0"/>
+        <TopLine Value="166"/>
+        <CursorPos X="1" Y="182"/>
+        <UsageCount Value="9"/>
+      </Unit25>
+      <Unit26>
+        <Filename Value="C:\development\fpc\rtl\inc\systemh.inc"/>
+        <WindowIndex Value="0"/>
+        <TopLine Value="623"/>
+        <CursorPos X="10" Y="699"/>
+        <UsageCount Value="9"/>
+      </Unit26>
+      <Unit27>
+        <Filename Value="C:\development\fpc\rtl\win\fpwinsockh.inc"/>
+        <WindowIndex Value="0"/>
+        <TopLine Value="176"/>
+        <CursorPos X="40" Y="205"/>
+        <UsageCount Value="9"/>
+      </Unit27>
+      <Unit28>
+        <Filename Value="enet_client_main.pas"/>
+        <UnitName Value="enet_client_main"/>
+        <WindowIndex Value="0"/>
+        <TopLine Value="81"/>
+        <CursorPos X="22" Y="20"/>
+        <UsageCount Value="9"/>
+      </Unit28>
+      <Unit29>
+        <Filename Value="enet-delphi\enet-master\include\enet\enet.h"/>
+        <WindowIndex Value="0"/>
+        <TopLine Value="91"/>
+        <CursorPos X="1" Y="106"/>
+        <UsageCount Value="9"/>
+        <DefaultSyntaxHighlighter Value="C++"/>
+      </Unit29>
+      <Unit30>
+        <Filename Value="C:\development\fpc\rtl\inc\objpash.inc"/>
+        <WindowIndex Value="0"/>
+        <TopLine Value="179"/>
+        <CursorPos X="22" Y="194"/>
+        <UsageCount Value="9"/>
+      </Unit30>
+      <Unit31>
+        <Filename Value="C:\development\lazarus\lcl\controls.pp"/>
+        <UnitName Value="Controls"/>
+        <WindowIndex Value="0"/>
+        <TopLine Value="2155"/>
+        <CursorPos X="15" Y="2170"/>
+        <UsageCount Value="10"/>
+      </Unit31>
+      <Unit32>
+        <Filename Value="C:\development\lazarus\lcl\include\customform.inc"/>
+        <WindowIndex Value="0"/>
+        <TopLine Value="935"/>
+        <CursorPos X="1" Y="952"/>
+        <UsageCount Value="10"/>
+      </Unit32>
+    </Units>
+    <General>
+      <ActiveWindowIndexAtStart Value="0"/>
+    </General>
+    <JumpHistory Count="28" HistoryIndex="27">
+      <Position1>
+        <Filename Value="enetpas_server_main.pas"/>
+        <Caret Line="50" Column="1" TopLine="33"/>
+      </Position1>
+      <Position2>
+        <Filename Value="enet-delphi\uenetclass.pas"/>
+        <Caret Line="261" Column="1" TopLine="241"/>
+      </Position2>
+      <Position3>
+        <Filename Value="enet-delphi\uenetclass.pas"/>
+        <Caret Line="290" Column="1" TopLine="262"/>
+      </Position3>
+      <Position4>
+        <Filename Value="enet-delphi\uenetclass.pas"/>
+        <Caret Line="263" Column="60" TopLine="251"/>
+      </Position4>
+      <Position5>
+        <Filename Value="enet-delphi\uenetclass.pas"/>
+        <Caret Line="261" Column="1" TopLine="251"/>
+      </Position5>
+      <Position6>
+        <Filename Value="enet-delphi\uenetclass.pas"/>
+        <Caret Line="290" Column="1" TopLine="262"/>
+      </Position6>
+      <Position7>
+        <Filename Value="enetpas_server_main.pas"/>
+        <Caret Line="57" Column="1" TopLine="41"/>
+      </Position7>
+      <Position8>
+        <Filename Value="enetpas_server_main.pas"/>
+        <Caret Line="46" Column="29" TopLine="35"/>
+      </Position8>
+      <Position9>
+        <Filename Value="enet-delphi\uenetclass.pas"/>
+        <Caret Line="122" Column="16" TopLine="72"/>
+      </Position9>
+      <Position10>
+        <Filename Value="enet-delphi\uenetclass.pas"/>
+        <Caret Line="97" Column="37" TopLine="81"/>
+      </Position10>
+      <Position11>
+        <Filename Value="enetpas_server_main.pas"/>
+        <Caret Line="25" Column="24" TopLine="15"/>
+      </Position11>
+      <Position12>
+        <Filename Value="enetpas_server_main.pas"/>
+        <Caret Line="49" Column="33" TopLine="34"/>
+      </Position12>
+      <Position13>
+        <Filename Value="enetpas_server_main.pas"/>
+        <Caret Line="47" Column="1" TopLine="34"/>
+      </Position13>
+      <Position14>
+        <Filename Value="enetpas_server_main.pas"/>
+        <Caret Line="48" Column="1" TopLine="34"/>
+      </Position14>
+      <Position15>
+        <Filename Value="enetpas_server_main.pas"/>
+        <Caret Line="49" Column="1" TopLine="34"/>
+      </Position15>
+      <Position16>
+        <Filename Value="enetpas_server_main.pas"/>
+        <Caret Line="50" Column="1" TopLine="34"/>
+      </Position16>
+      <Position17>
+        <Filename Value="enet-delphi\uenetclass.pas"/>
+        <Caret Line="150" Column="1" TopLine="134"/>
+      </Position17>
+      <Position18>
+        <Filename Value="enet-delphi\uenetclass.pas"/>
+        <Caret Line="151" Column="1" TopLine="134"/>
+      </Position18>
+      <Position19>
+        <Filename Value="enet-delphi\uenetclass.pas"/>
+        <Caret Line="152" Column="1" TopLine="134"/>
+      </Position19>
+      <Position20>
+        <Filename Value="enet-delphi\uenetclass.pas"/>
+        <Caret Line="154" Column="1" TopLine="134"/>
+      </Position20>
+      <Position21>
+        <Filename Value="enet-delphi\uenetclass.pas"/>
+        <Caret Line="158" Column="1" TopLine="134"/>
+      </Position21>
+      <Position22>
+        <Filename Value="enet-delphi\uenetclass.pas"/>
+        <Caret Line="160" Column="1" TopLine="134"/>
+      </Position22>
+      <Position23>
+        <Filename Value="enet-delphi\uenetclass.pas"/>
+        <Caret Line="157" Column="1" TopLine="134"/>
+      </Position23>
+      <Position24>
+        <Filename Value="enet-delphi\uenetclass.pas"/>
+        <Caret Line="171" Column="1" TopLine="156"/>
+      </Position24>
+      <Position25>
+        <Filename Value="enet-delphi\uenetclass.pas"/>
+        <Caret Line="172" Column="1" TopLine="156"/>
+      </Position25>
+      <Position26>
+        <Filename Value="enetpas_server_main.pas"/>
+        <Caret Line="51" Column="1" TopLine="34"/>
+      </Position26>
+      <Position27>
+        <Filename Value="enet-delphi\uenetclass.pas"/>
+        <Caret Line="191" Column="34" TopLine="1"/>
+      </Position27>
+      <Position28>
+        <Filename Value="enet-delphi\uenetclass.pas"/>
+        <Caret Line="53" Column="7" TopLine="37"/>
+      </Position28>
+    </JumpHistory>
+  </ProjectSession>
+  <EditorMacros Count="0"/>
+</CONFIG>
