@@ -22,7 +22,11 @@ unit uENetClass;
   LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
   FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
   IN THE SOFTWARE.
+
+
+  - Add SendMsgEventPeer
 }
+
 
 
 {$mode objfpc}{$H+}
@@ -81,6 +85,8 @@ type
       function DisConnect(bNow: Boolean): Boolean;
       function SendMsg(Channel: Byte; Data: Pointer; Length: Integer; flag: TENetPacketFlags;
         WaitResponse: Boolean = False): Boolean;
+      function SendMsgEventPeer(Data: Pointer; Length: Integer;
+        flag: TENetPacketFlags; WaitResponse: Boolean=False): Boolean;
       procedure FlushMsg;
       function BroadcastMsg(Channel: Byte; Data: Pointer; Length: Integer; flag: TENetPacketFlags; WaitResponse : Boolean = False):Boolean;
       function ProcessMsg:Boolean; virtual;
@@ -235,6 +241,22 @@ begin
      PacketFlag:=GetPacketFlag(flag);
      FPacket := enet_packet_create(Data, Length, PacketFlag);
      if enet_peer_send(FPeer,Channel,FPacket)=0 then
+       if WaitResponse then
+          Result:=ProcessMsg;
+  end;
+end;
+
+function TENetClass.SendMsgEventPeer(Data: Pointer; Length: Integer;
+  flag: TENetPacketFlags; WaitResponse: Boolean = False): Boolean;
+var
+  FPacket : pENetPacket;
+  PacketFlag : Cardinal;
+begin
+  Result:=False;
+  if FEvent.Peer<>nil then begin
+     PacketFlag:=GetPacketFlag(flag);
+     FPacket := enet_packet_create(Data, Length, PacketFlag);
+     if enet_peer_send(FEvent.Peer,FEvent.channelID,FPacket)=0 then
        if WaitResponse then
           Result:=ProcessMsg;
   end;
