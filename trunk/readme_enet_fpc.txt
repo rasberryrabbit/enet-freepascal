@@ -32,4 +32,4 @@ enet_socket.pas (1)
 changes
 ----------
 - initial work, with ENet 1.3.6 svn.
-
+- add SendMsgEventPeer
