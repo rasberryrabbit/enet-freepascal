@@ -1,4 +1,4 @@
-<?xml version="1.0"?>
+<?xml version="1.0" encoding="UTF-8"?>
 <CONFIG>
   <ProjectOptions>
     <Version Value="9"/>
@@ -39,7 +39,6 @@
       <Unit0>
         <Filename Value="enetpas_server.lpr"/>
         <IsPartOfProject Value="True"/>
-        <UnitName Value="enetpas_server"/>
       </Unit0>
       <Unit1>
         <Filename Value="enetpas_server_main.pas"/>
@@ -52,7 +51,6 @@
       <Unit2>
         <Filename Value="enet-delphi\uenetclass.pas"/>
         <IsPartOfProject Value="True"/>
-        <UnitName Value="uENetClass"/>
       </Unit2>
     </Units>
   </ProjectOptions>
@@ -64,7 +62,7 @@
     </Target>
     <SearchPaths>
       <IncludeFiles Value="$(ProjOutDir)"/>
-      <OtherUnitFiles Value="enet-delphi;D:\lazarus\components\bgrabitmap\"/>
+      <OtherUnitFiles Value=".."/>
       <UnitOutputDirectory Value="lib\$(TargetCPU)-$(TargetOS)"/>
     </SearchPaths>
     <Linking>
@@ -74,12 +72,6 @@
         </Win32>
       </Options>
     </Linking>
-    <Other>
-      <CompilerMessages>
-        <MsgFileName Value=""/>
-      </CompilerMessages>
-      <CompilerPath Value="$(CompPath)"/>
-    </Other>
   </CompilerOptions>
   <Debugging>
     <Exceptions Count="3">

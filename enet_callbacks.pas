@@ -4,7 +4,7 @@ unit enet_callbacks;
  @file callbacks.c
  @brief ENet callback functions
 
- 1.3.6 freepascal
+ 1.3.12 freepascal
 
  - fix callback pointer nil check
 *)
@@ -16,6 +16,7 @@ uses enet_consts, enet_socket;
 function enet_initialize_with_callbacks (version : integer; inits : pENetCallbacks):integer;
 function enet_malloc (size : enet_size_t):pointer;
 procedure enet_free (memory : pointer);
+function enet_linked_version:enet_uint32;
 
 implementation
 
@@ -24,6 +25,14 @@ uses sysutils;
 var
   callbacks : ENetCallbacks;
 
+(**
+  Gives the linked version of the ENet library.
+  @returns the version number
+*)
+function enet_linked_version:enet_uint32;
+begin
+   Result:=ENET_VERSION;
+end;
 
 function enet_initialize_with_callbacks (version : integer; inits : pENetCallbacks):integer;
 begin

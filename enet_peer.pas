@@ -5,7 +5,7 @@ unit enet_peer;
  @brief ENet peer management functions
 
  freepascal
- 1.3.6
+ 1.3.12
 *)
 
 {$GOTO ON}
@@ -20,7 +20,7 @@ procedure enet_peer_disconnect_later (peer : pENetPeer;data : enet_uint32);
 procedure enet_peer_disconnect_now (peer : pENetPeer;data : enet_uint32);
 procedure enet_peer_ping (peer : pENetPeer);
 function enet_peer_queue_acknowledgement (peer : pENetPeer; command : pENetProtocol; sentTime : enet_uint16):pENetAcknowledgement;
-function enet_peer_queue_incoming_command (peer : pENetPeer;command : pENetProtocol; packet : pENetPacket;fragmentCount : enet_uint32):pENetIncomingCommand;
+function enet_peer_queue_incoming_command (peer:pENetPeer; command: pENetProtocol; data:Pointer; dataLength: sizeint; flags, fragmentCount: enet_uint32):pENetIncomingCommand;
 function enet_peer_queue_outgoing_command (peer : pENetPeer;command : pENetProtocol;packet : pENetPacket;offset : enet_uint32;length : enet_uint16):pENetOutgoingCommand;
 function enet_peer_receive (peer : pENetPeer; channelID : penet_uint8):pENetPacket;
 procedure enet_peer_reset (peer : pENetPeer);
@@ -33,6 +33,9 @@ procedure enet_peer_throttle_configure (peer : pENetPeer;interval : enet_uint32;
 procedure enet_peer_dispatch_incoming_reliable_commands (peer:pENetPeer; channel:pENetChannel);
 procedure enet_peer_dispatch_incoming_unreliable_commands (peer:pENetPeer; channel:pENetChannel);
 procedure enet_peer_setup_outgoing_command (peer:pENetPeer; outgoingCommand:pENetOutgoingCommand);
+
+procedure enet_peer_on_connect (peer:pENetPeer);
+procedure enet_peer_on_disconnect (peer:pENetPeer);
 
 implementation
 
@@ -142,7 +145,7 @@ begin
 
    if (peer^. state <> ENET_PEER_STATE_CONNECTED) or
    (channelID >= peer ^. channelCount) or
-   (packet ^. dataLength > ENET_PROTOCOL_MAXIMUM_PACKET_SIZE) then
+   (packet ^. dataLength > peer ^. host ^. maximumPacketSize) then
      begin result := -1; exit; end;
 
    fragmentLength := peer^. mtu - sizeof (ENetProtocolHeader) - sizeof (ENetProtocolSendFragment);
@@ -278,6 +281,8 @@ begin
 
    enet_free (incomingCommand);
 
+   Dec(peer ^. totalWaitingData , packet ^. dataLength);
+
    result := packet;
 end;
 
@@ -376,6 +381,28 @@ begin
     peer^. channelCount := 0;
 end;
 
+procedure enet_peer_on_connect (peer:pENetPeer);
+begin
+    if ((peer ^. state <> ENET_PEER_STATE_CONNECTED) and (peer ^. state <> ENET_PEER_STATE_DISCONNECT_LATER)) then
+    begin
+        if (peer ^. incomingBandwidth <> 0) then
+            Inc(peer ^. host ^. bandwidthLimitedPeers);
+
+        Inc(peer ^. host ^. connectedPeers);
+    end;
+end;
+
+procedure enet_peer_on_disconnect (peer:pENetPeer);
+begin
+    if ((peer ^. state = ENET_PEER_STATE_CONNECTED) or (peer ^. state = ENET_PEER_STATE_DISCONNECT_LATER)) then
+    begin
+        if (peer ^. incomingBandwidth <> 0) then
+          Dec(peer ^. host ^. bandwidthLimitedPeers);
+
+        Dec(peer ^. host ^. connectedPeers);
+    end;
+end;
+
 (** Forcefully disconnects a peer.
     @param peer peer to forcefully disconnect
     @remarks The foreign host represented by the peer is not notified of the disconnection and will timeout
@@ -383,6 +410,8 @@ end;
 *)
 procedure enet_peer_reset (peer : pENetPeer);
 begin
+    enet_peer_on_disconnect (peer);
+
     peer^. outgoingPeerID := ENET_PROTOCOL_MAXIMUM_PEER_ID;
     peer^. connectID := 0;
 
@@ -427,6 +456,7 @@ begin
     peer^. incomingUnsequencedGroup := 0;
     peer^. outgoingUnsequencedGroup := 0;
     peer^. eventData := 0;
+    peer^. totalWaitingData := 0;
 
     fillchar (peer^. unsequencedWindow[0], sizeof (peer^. unsequencedWindow), 0);
     
@@ -560,7 +590,11 @@ begin
     enet_peer_queue_outgoing_command (peer, @ command, nil, 0, 0);
 
     if (peer^. state = ENET_PEER_STATE_CONNECTED) or (peer^. state = ENET_PEER_STATE_DISCONNECT_LATER) then
-      peer^. state := ENET_PEER_STATE_DISCONNECTING
+    begin
+        enet_peer_on_disconnect (peer);
+
+        peer ^. state := ENET_PEER_STATE_DISCONNECTING;
+    end
     else
     begin
         enet_host_flush (peer^. host);
@@ -839,21 +873,23 @@ end;
 var
     dummyCommand : ENetIncomingCommand; // static
 
-function enet_peer_queue_incoming_command (peer : pENetPeer;command : pENetProtocol; packet : pENetPacket;fragmentCount : enet_uint32):pENetIncomingCommand;
+function enet_peer_queue_incoming_command (peer:pENetPeer; command: pENetProtocol; data:Pointer; dataLength: sizeint; flags, fragmentCount: enet_uint32):pENetIncomingCommand;
 var
     channel : pENetChannel;
     unreliableSequenceNumber, reliableSequenceNumber : enet_uint32;
     reliableWindow, currentWindow : enet_uint16;
     incomingCommand : pENetIncomingCommand;
     currentCommand : ENetListIterator;
-label freePacket, continuework1, continuework2, NotifyError;
+    packet : pENetPacket;
+label discardCommand, continuework1, continuework2, NotifyError;
 begin
     channel := @ pENetChannelArray(peer^. channels)^[command^. header.channelID];
     unreliableSequenceNumber := 0;
     reliableSequenceNumber:=0;
+    packet := nil;
 
     if (peer^. state = ENET_PEER_STATE_DISCONNECT_LATER) then
-      goto freePacket;
+      goto discardCommand;
 
     if ((command^. header.command and ENET_PROTOCOL_COMMAND_MASK) <> ENET_PROTOCOL_COMMAND_SEND_UNSEQUENCED) then
     begin
@@ -866,14 +902,14 @@ begin
            inc(reliableWindow , ENET_PEER_RELIABLE_WINDOWS);
 
         if (reliableWindow < currentWindow) or (reliableWindow >= (currentWindow + ENET_PEER_FREE_RELIABLE_WINDOWS - 1)) then
-          goto freePacket;
+          goto discardCommand;
     end;
 
     case (command^. header.command and ENET_PROTOCOL_COMMAND_MASK) of
     ENET_PROTOCOL_COMMAND_SEND_FRAGMENT,
     ENET_PROTOCOL_COMMAND_SEND_RELIABLE: begin
        if (reliableSequenceNumber = channel^. incomingReliableSequenceNumber) then
-           goto freePacket;
+           goto discardCommand;
 
        currentCommand := enet_list_previous (enet_list_end (@ channel^. incomingReliableCommands));
        while PAnsiChar(currentCommand) <> PAnsiChar( enet_list_end (@ channel^. incomingReliableCommands)) do
@@ -894,7 +930,7 @@ begin
              if (incomingCommand^. reliableSequenceNumber < reliableSequenceNumber) then
                break;
 
-             goto freePacket;
+             goto discardCommand;
           end;
 continuework2:
           currentCommand := enet_list_previous (currentCommand);
@@ -908,7 +944,7 @@ continuework2:
 
        if (reliableSequenceNumber = channel^. incomingReliableSequenceNumber) and
           (unreliableSequenceNumber <= channel^. incomingUnreliableSequenceNumber) then
-         goto freePacket;
+         goto discardCommand;
 
        currentCommand := enet_list_previous (enet_list_end (@ channel^. incomingUnreliableCommands));
        while PAnsiChar(currentCommand) <> PAnsiChar(enet_list_end (@ channel^. incomingUnreliableCommands)) do
@@ -938,7 +974,7 @@ continuework2:
              if (incomingCommand^. unreliableSequenceNumber < unreliableSequenceNumber) then
                break;
 
-             goto freePacket;
+             goto discardCommand;
           end;
 continuework1:
           currentCommand := enet_list_previous (currentCommand);
@@ -949,8 +985,15 @@ continuework1:
        currentCommand := enet_list_end (@ channel^. incomingUnreliableCommands);
        end; // break;
 
-    else goto freePacket;
+    else goto discardCommand;
     end;  // end case
+
+    if (peer ^. totalWaitingData >= peer ^. host ^. maximumWaitingData) then
+      goto notifyError;
+
+    packet := enet_packet_create (data, dataLength, flags);
+    if (packet = nil) then
+      goto notifyError;
 
     incomingCommand := pENetIncomingCommand(enet_malloc (sizeof (ENetIncomingCommand)));
     if (incomingCommand = nil) then
@@ -978,7 +1021,11 @@ continuework1:
     end;
 
     if (packet <> nil) then
-      inc(packet^. referenceCount);
+    begin
+       Inc(packet ^. referenceCount);
+
+       Inc(peer ^. totalWaitingData, packet ^. dataLength);
+    end;
 
     enet_list_insert (enet_list_next (currentCommand), pENetListNode(incomingCommand));
 
@@ -992,7 +1039,7 @@ continuework1:
 
     result := incomingCommand; exit;
 
-freePacket:
+discardCommand:
     if (fragmentCount > 0) then goto notifyError;
 
     if (packet <> nil ) and (packet^. referenceCount = 0) then

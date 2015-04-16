@@ -4,7 +4,7 @@ unit enet_consts;
   enet freepascal conversion constant and some functions
 
 
-  1.3.6 freepascal
+  1.3.12 freepascal
 
   - fix time function
   - add missing commnet in Packet Flag
@@ -48,7 +48,7 @@ const
 // enet.h <-----
    ENET_VERSION_MAJOR = 1;
    ENET_VERSION_MINOR = 3;
-   ENET_VERSION_PATCH = 6;
+   ENET_VERSION_PATCH = 12;
    ENET_VERSION = (ENET_VERSION_MAJOR shl 16) or (ENET_VERSION_MINOR shl 8) or ENET_VERSION_PATCH;
    //ENetVersion;
 
@@ -59,6 +59,7 @@ const
    ENET_SOCKET_WAIT_NONE    = 0;
    ENET_SOCKET_WAIT_SEND    = (1 shl 0);
    ENET_SOCKET_WAIT_RECEIVE = (1 shl 1);
+   ENET_SOCKET_WAIT_INTERRUPT = (1 shl 2);
    //ENetSocketWait;
 
    ENET_SOCKOPT_NONBLOCK  = 1;
@@ -68,6 +69,8 @@ const
    ENET_SOCKOPT_REUSEADDR = 5;
    ENET_SOCKOPT_RCVTIMEO  = 6;
    ENET_SOCKOPT_SNDTIMEO  = 7;
+   ENET_SOCKOPT_ERROR     = 8;
+   ENET_SOCKOPT_NODELAY   = 9;
    //ENetSocketOption;
 
    ENET_SOCKET_SHUTDOWN_READ       = 0;
@@ -88,7 +91,7 @@ const
 
 
    ENET_HOST_ANY       = 0;            (**< specifies the default server host *)
-   ENET_HOST_BROADCAST_= $FFFFFFFF;    (**< specifies a subnet-wide broadcast *)
+   ENET_HOST_BROADCAST_= longword($FFFFFFFF);    (**< specifies a subnet-wide broadcast *)
 
    ENET_PORT_ANY       = 0;            (**< specifies that a port should be automatically chosen *)
 
@@ -119,6 +122,8 @@ const
    (** packet will be fragmented using unreliable (instead of reliable) sends
      * if it exceeds the MTU *)
    ENET_PACKET_FLAG_UNRELIABLE_FRAGMENT = (1 shl 3);
+   (** whether the packet has been sent from all queues it has been entered into *)
+   ENET_PACKET_FLAG_SENT = (1 shl 8);
    //ENetPacketFlag
 // -----> enet.h
 
@@ -127,11 +132,11 @@ const
    ENET_PROTOCOL_MAXIMUM_MTU             = 4096;
    ENET_PROTOCOL_MAXIMUM_PACKET_COMMANDS = 32;
    ENET_PROTOCOL_MINIMUM_WINDOW_SIZE     = 4096;
-   ENET_PROTOCOL_MAXIMUM_WINDOW_SIZE     = 32768;
+   ENET_PROTOCOL_MAXIMUM_WINDOW_SIZE     = 65536;
    ENET_PROTOCOL_MINIMUM_CHANNEL_COUNT   = 1;
    ENET_PROTOCOL_MAXIMUM_CHANNEL_COUNT   = 255;
    ENET_PROTOCOL_MAXIMUM_PEER_ID         = $0FFF;
-   ENET_PROTOCOL_MAXIMUM_PACKET_SIZE     = 1024 * 1024 * 1024;
+   // ENET_PROTOCOL_MAXIMUM_PACKET_SIZE     = 1024 * 1024 * 1024;
    ENET_PROTOCOL_MAXIMUM_FRAGMENT_COUNT  = 1024 * 1024;
    //
 
@@ -217,6 +222,9 @@ const
    ENET_HOST_SEND_BUFFER_SIZE             = 256 * 1024;
    ENET_HOST_BANDWIDTH_THROTTLE_INTERVAL  = 1000;
    ENET_HOST_DEFAULT_MTU                  = 1400;
+   ENET_HOST_DEFAULT_MAXIMUM_PACKET_SIZE  = 32 * 1024 * 1024;
+   ENET_HOST_DEFAULT_MAXIMUM_WAITING_DATA = 32 * 1024 * 1024;
+
    ENET_PEER_DEFAULT_ROUND_TRIP_TIME      = 500;
    ENET_PEER_DEFAULT_PACKET_THROTTLE      = 32;
    ENET_PEER_PACKET_THROTTLE_SCALE        = 32;
@@ -423,6 +431,7 @@ type
     data            : pbyte;            (**< allocated data for packet *)
     dataLength      : enet_uint32;      (**< length of data *)
     freeCallback    : ENetPacketFreeCallback;    (**< function to be called when the packet is no longer in use *)
+    userData        : Pointer;        (**< application private data, may be freely modified *)
   end;
 
   pENetAcknowledgement = ^ENetAcknowledgement;
@@ -542,6 +551,7 @@ type
    outgoingUnsequencedGroup :enet_uint16;
    unsequencedWindow : array[0..(ENET_PEER_UNSEQUENCED_WINDOW_SIZE div 32)-1] of enet_uint32;
    eventData         : enet_uint32;
+   totalWaitingData  : enet_size_t;
   end;
 
   ENetPeerArray = array[0..0] of ENetPeer;
@@ -622,6 +632,11 @@ type
    totalReceivedData : enet_uint32;           (**< total data received, user should reset to 0 as needed to prevent overflow *)
    totalReceivedPackets : enet_uint32;        (**< total UDP packets received, user should reset to 0 as needed to prevent overflow *)
    interceptfunc : Pointer; //ENetInterceptCallback  (**< callback the user can set to intercept received raw UDP packets *)
+   connectedPeers: enet_size_t;
+   bandwidthLimitedPeers : enet_size_t;
+   duplicatePeers : enet_size_t;              (**< optional number of allowed peers from duplicate IPs, defaults to ENET_PROTOCOL_MAXIMUM_PEER_ID *)
+   maximumPacketSize : enet_size_t;           (**< the maximum allowable packet size that may be sent or received on a peer *)
+   maximumWaitingData : enet_size_t;          (**< the maximum aggregate amount of buffer space a peer may use waiting for packets to be delivered *)
   end;
 
 (**
@@ -708,6 +723,7 @@ begin
  result := y;
  if x < y then result := x;
 end;
+
 
 
 end.

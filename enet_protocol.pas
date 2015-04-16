@@ -4,7 +4,7 @@ unit enet_protocol;
  @file  protocol.c
  @brief ENet protocol functions
 
- 1.3.6 freepascal
+ 1.3.12 freepascal
 
  - fix enet_host_service mistranslation
  - fix enet_protocol_send_acknowledgements
@@ -46,6 +46,8 @@ function enet_protocol_send_reliable_outgoing_commands (host : pENetHost; peer :
 procedure enet_protocol_send_unreliable_outgoing_commands (host : pENetHost;peer : pENetPeer);
 function enet_host_check_events (host : pENetHost; event : pENetEvent):integer;
 
+procedure enet_protocol_change_state (host:pENetHost; peer:pENetPeer; state: (*ENetPeerState*)enet_uint32 );
+procedure enet_protocol_dispatch_state (host:pENetHost; peer:pENetPeer; state: (*ENetPeerState*)enet_uint32);
 
 const
   commandSizes : array[0..(ENET_PROTOCOL_COMMAND_COUNT)-1] of enet_size_t =
@@ -75,6 +77,28 @@ begin
     result := commandSizes [commandNumber and ENET_PROTOCOL_COMMAND_MASK];
 end;
 
+procedure enet_protocol_change_state (host:pENetHost; peer:pENetPeer; state: (*ENetPeerState*)enet_uint32);
+begin
+    if ((state = ENET_PEER_STATE_CONNECTED) or (state = ENET_PEER_STATE_DISCONNECT_LATER)) then
+      enet_peer_on_connect (peer)
+    else
+      enet_peer_on_disconnect (peer);
+
+    peer ^. state := state;
+end;
+
+procedure enet_protocol_dispatch_state (host:pENetHost; peer:pENetPeer; state: (*ENetPeerState*)enet_uint32);
+begin
+    enet_protocol_change_state (host, peer, state);
+
+    if (peer ^. needsDispatch = 0) then
+    begin
+       enet_list_insert (enet_list_end (@ host ^. dispatchQueue), @ peer ^. dispatchList);
+
+       peer ^. needsDispatch := 1;
+    end;
+end;
+
 function enet_protocol_dispatch_incoming_commands (host : pENetHost;event : pENetEvent):integer;
 var
     peer : pENetPeer;
@@ -89,7 +113,7 @@ begin
        ENET_PEER_STATE_CONNECTION_PENDING,
        ENET_PEER_STATE_CONNECTION_SUCCEEDED:
           begin
-           peer ^. state := ENET_PEER_STATE_CONNECTED;
+           enet_protocol_change_state (host, peer, ENET_PEER_STATE_CONNECTED);
 
            event ^. EventType := ENET_EVENT_TYPE_CONNECT;
            event ^. peer  := peer;
@@ -137,18 +161,6 @@ begin
     Result:=0;
 end;
 
-procedure enet_protocol_dispatch_state (host:pENetHost; peer:pENetPeer; state: Integer { ENetPeerState });
-begin
-    peer ^. state := state;
-
-    if (peer ^. needsDispatch = 0) then
-    begin
-       enet_list_insert (enet_list_end (@ host ^. dispatchQueue), @ peer ^. dispatchList);
-
-       peer ^. needsDispatch := 1;
-    end;
-end;
-
 procedure enet_protocol_notify_connect (host : pENetHost;peer : pENetPeer;event : pENetEvent);
 var
     state : Integer;
@@ -157,7 +169,7 @@ begin
 
     if (event <> nil) then
     begin
-       peer ^. state := ENET_PEER_STATE_CONNECTED;
+       enet_protocol_change_state (host, peer, ENET_PEER_STATE_CONNECTED);
 
        event ^. EventType := ENET_EVENT_TYPE_CONNECT;
        event ^. peer := peer;
@@ -212,7 +224,11 @@ begin
            dec(outgoingCommand ^. packet ^. referenceCount);
 
            if (outgoingCommand ^. packet ^. referenceCount = 0) then
-             enet_packet_destroy (outgoingCommand ^. packet);
+           begin
+              outgoingCommand ^. packet ^. flags := outgoingCommand ^. packet ^. flags or ENET_PACKET_FLAG_SENT;
+
+              enet_packet_destroy (outgoingCommand ^. packet);
+           end;
         end;
 
         enet_free (outgoingCommand);
@@ -290,7 +306,11 @@ begin
        dec( outgoingCommand ^. packet ^. referenceCount);
 
        if (outgoingCommand ^. packet ^. referenceCount = 0) then
-         enet_packet_destroy (outgoingCommand ^. packet);
+       begin
+          outgoingCommand ^. packet ^. flags := outgoingCommand ^. packet ^. flags or ENET_PACKET_FLAG_SENT;
+
+          enet_packet_destroy (outgoingCommand ^. packet);
+       end;
     end;
 
     enet_free (outgoingCommand);
@@ -310,11 +330,12 @@ var
     incomingSessionID, outgoingSessionID : enet_uint8;
     mtu, windowSize : enet_uint32;
     channel : pENetChannel;
-    channelCount : enet_size_t;
-    currentPeer : pENetPeer;
+    channelCount, duplicatePeers : enet_size_t;
+    currentPeer, peer : pENetPeer;
     verifyCommand : ENetProtocol;
 begin
-
+    duplicatePeers :=0;
+    peer :=nil;
     channelCount := ENET_NET_TO_HOST_32 (command ^. connect.channelCount);
 
     if (channelCount < ENET_PROTOCOL_MINIMUM_CHANNEL_COUNT) or
@@ -324,63 +345,65 @@ begin
     currentPeer := host ^. peers;
     while PAnsiChar(currentPeer)< PAnsiChar(@(pENetPeerArray(host ^. peers)^[host ^. peerCount])) do
     begin
-        if (currentPeer ^. state <> ENET_PEER_STATE_DISCONNECTED) and
-           (currentPeer ^. address.host = host ^. receivedAddress.host) and
-           (currentPeer ^. address.port = host ^. receivedAddress.port) and
-           (currentPeer ^. connectID = command ^. connect.connectID) then
-          begin result := nil; exit; end;
-        inc(currentPeer);
+       if (currentPeer ^. state = ENET_PEER_STATE_DISCONNECTED) then
+       begin
+           if (peer = nil) then
+             peer := currentPeer;
+       end
+       else
+       if ((currentPeer ^. state <> ENET_PEER_STATE_CONNECTING) and
+           (currentPeer ^. address.host = host ^. receivedAddress.host)) then
+       begin
+           if ((currentPeer ^. address.port = host ^. receivedAddress.port) and
+               (currentPeer ^. connectID = command ^. connect.connectID)) then
+             begin Result:=nil; exit; end;
+
+           Inc(duplicatePeers);
+       end;
+       inc(currentPeer);
     end;
 
-    currentPeer := host ^. peers;
-    while PAnsiChar(currentPeer)< PAnsiChar(@(pENetPeerArray(host ^. peers)^[host ^. peerCount])) do
-    begin
-        if (currentPeer ^. state = ENET_PEER_STATE_DISCONNECTED) then
-          break;
-        inc(currentPeer);
-    end;
-
-    if PAnsiChar(currentPeer) >= PAnsiChar(@(pENetPeerArray(host ^. peers)^[host ^. peerCount])) then
+    if ((peer = nil) or (duplicatePeers >= host ^. duplicatePeers)) then
       begin result := nil; exit; end;
 
     if (channelCount > host ^. channelLimit) then
       channelCount := host ^. channelLimit;
-    currentPeer ^. channels := pENetChannel (enet_malloc (channelCount * sizeof (ENetChannel)));
-    if (currentPeer ^. channels = nil) then begin
+    peer ^. channels := pENetChannel (enet_malloc (channelCount * sizeof (ENetChannel)));
+    if (peer ^. channels = nil) then begin
       Result:=nil; exit;
     end;
-    currentPeer ^. channelCount := channelCount;
-    currentPeer ^. state := ENET_PEER_STATE_ACKNOWLEDGING_CONNECT;
-    currentPeer ^. connectID := command ^. connect.connectID;
-    currentPeer ^. address := host ^. receivedAddress;
-    currentPeer ^. outgoingPeerID := ENET_NET_TO_HOST_16 (command ^. connect.outgoingPeerID);
-    currentPeer ^. incomingBandwidth := ENET_NET_TO_HOST_32 (command ^. connect.incomingBandwidth);
-    currentPeer ^. outgoingBandwidth := ENET_NET_TO_HOST_32 (command ^. connect.outgoingBandwidth);
-    currentPeer ^. packetThrottleInterval := ENET_NET_TO_HOST_32 (command ^. connect.packetThrottleInterval);
-    currentPeer ^. packetThrottleAcceleration := ENET_NET_TO_HOST_32 (command ^. connect.packetThrottleAcceleration);
-    currentPeer ^. packetThrottleDeceleration := ENET_NET_TO_HOST_32 (command ^. connect.packetThrottleDeceleration);
-    currentPeer ^. eventData := ENET_NET_TO_HOST_32 (command ^. connect.data);
+    peer ^. channelCount := channelCount;
+    peer ^. state := ENET_PEER_STATE_ACKNOWLEDGING_CONNECT;
+    peer ^. connectID := command ^. connect.connectID;
+    peer ^. address := host ^. receivedAddress;
+    peer ^. outgoingPeerID := ENET_NET_TO_HOST_16 (command ^. connect.outgoingPeerID);
+    peer ^. incomingBandwidth := ENET_NET_TO_HOST_32 (command ^. connect.incomingBandwidth);
+    peer ^. outgoingBandwidth := ENET_NET_TO_HOST_32 (command ^. connect.outgoingBandwidth);
+    peer ^. packetThrottleInterval := ENET_NET_TO_HOST_32 (command ^. connect.packetThrottleInterval);
+    peer ^. packetThrottleAcceleration := ENET_NET_TO_HOST_32 (command ^. connect.packetThrottleAcceleration);
+    peer ^. packetThrottleDeceleration := ENET_NET_TO_HOST_32 (command ^. connect.packetThrottleDeceleration);
+    peer ^. eventData := ENET_NET_TO_HOST_32 (command ^. connect.data);
 
     if command ^. connect.incomingSessionID=$0ff then
-      incomingSessionID:= currentPeer ^. outgoingSessionID
+      incomingSessionID:= Peer ^. outgoingSessionID
       else
           incomingSessionID:=command ^. connect.incomingSessionID;
     incomingSessionID := (incomingSessionID + 1) and  (ENET_PROTOCOL_HEADER_SESSION_MASK shr ENET_PROTOCOL_HEADER_SESSION_SHIFT);
-    if (incomingSessionID = currentPeer ^. outgoingSessionID) then
+    if (incomingSessionID = Peer ^. outgoingSessionID) then
       incomingSessionID := (incomingSessionID + 1) and (ENET_PROTOCOL_HEADER_SESSION_MASK shr ENET_PROTOCOL_HEADER_SESSION_SHIFT);
-    currentPeer ^. outgoingSessionID := incomingSessionID;
+    Peer ^. outgoingSessionID := incomingSessionID;
 
     if command ^. connect.outgoingSessionID=$0ff then
-      outgoingSessionID:=currentPeer ^. incomingSessionID
+      outgoingSessionID:=Peer ^. incomingSessionID
       else
           outgoingSessionID:=command ^. connect.outgoingSessionID;
     outgoingSessionID := (outgoingSessionID + 1) and (ENET_PROTOCOL_HEADER_SESSION_MASK shr ENET_PROTOCOL_HEADER_SESSION_SHIFT);
-    if (outgoingSessionID = currentPeer ^. incomingSessionID) then
+    if (outgoingSessionID = Peer ^. incomingSessionID) then
       outgoingSessionID := (outgoingSessionID + 1) and (ENET_PROTOCOL_HEADER_SESSION_MASK shr ENET_PROTOCOL_HEADER_SESSION_SHIFT);
-    currentPeer ^. incomingSessionID := outgoingSessionID;
+    Peer ^. incomingSessionID := outgoingSessionID;
 
-    channel := currentPeer ^. channels;
-    while PAnsiChar(channel)< PAnsiChar(@(pENetChannelArray(currentPeer ^. channels)^[channelCount])) do
+    channel := Peer ^. channels;
+    while PAnsiChar(channel)< PAnsiChar(@(pENetChannelArray(Peer ^. channels)^[channelCount])) do
     begin
         channel ^. outgoingReliableSequenceNumber := 0;
         channel ^. outgoingUnreliableSequenceNumber := 0;
@@ -404,27 +427,27 @@ begin
     if (mtu > ENET_PROTOCOL_MAXIMUM_MTU) then
       mtu := ENET_PROTOCOL_MAXIMUM_MTU;
 
-    currentPeer ^. mtu := mtu;
+    Peer ^. mtu := mtu;
 
     if (host ^. outgoingBandwidth = 0) and
-        (currentPeer ^. incomingBandwidth = 0) then
-      currentPeer ^. windowSize := ENET_PROTOCOL_MAXIMUM_WINDOW_SIZE
+        (Peer ^. incomingBandwidth = 0) then
+      Peer ^. windowSize := ENET_PROTOCOL_MAXIMUM_WINDOW_SIZE
     else
     if (host ^. outgoingBandwidth = 0) or
-        (currentPeer ^. incomingBandwidth = 0) then
-      currentPeer ^. windowSize := (ENET_MAX (host ^. outgoingBandwidth, currentPeer ^. incomingBandwidth) div
+        (Peer ^. incomingBandwidth = 0) then
+      Peer ^. windowSize := (ENET_MAX (host ^. outgoingBandwidth, Peer ^. incomingBandwidth) div
                                     ENET_PEER_WINDOW_SIZE_SCALE) *
                                       ENET_PROTOCOL_MINIMUM_WINDOW_SIZE
     else
-      currentPeer ^. windowSize := (ENET_MIN (host ^. outgoingBandwidth, currentPeer ^. incomingBandwidth) div
+      Peer ^. windowSize := (ENET_MIN (host ^. outgoingBandwidth, Peer ^. incomingBandwidth) div
                                     ENET_PEER_WINDOW_SIZE_SCALE) *
                                       ENET_PROTOCOL_MINIMUM_WINDOW_SIZE;
 
-    if (currentPeer ^. windowSize < ENET_PROTOCOL_MINIMUM_WINDOW_SIZE) then
-      currentPeer ^. windowSize := ENET_PROTOCOL_MINIMUM_WINDOW_SIZE
+    if (Peer ^. windowSize < ENET_PROTOCOL_MINIMUM_WINDOW_SIZE) then
+      Peer ^. windowSize := ENET_PROTOCOL_MINIMUM_WINDOW_SIZE
     else
-    if (currentPeer ^. windowSize > ENET_PROTOCOL_MAXIMUM_WINDOW_SIZE) then
-      currentPeer ^. windowSize := ENET_PROTOCOL_MAXIMUM_WINDOW_SIZE;
+    if (Peer ^. windowSize > ENET_PROTOCOL_MAXIMUM_WINDOW_SIZE) then
+      Peer ^. windowSize := ENET_PROTOCOL_MAXIMUM_WINDOW_SIZE;
 
     if (host ^. incomingBandwidth = 0) then
       windowSize := ENET_PROTOCOL_MAXIMUM_WINDOW_SIZE
@@ -443,27 +466,26 @@ begin
 
     verifyCommand.header.command := ENET_PROTOCOL_COMMAND_VERIFY_CONNECT or ENET_PROTOCOL_COMMAND_FLAG_ACKNOWLEDGE;
     verifyCommand.header.channelID := $FF;
-    verifyCommand.verifyConnect.outgoingPeerID := ENET_HOST_TO_NET_16 (currentPeer ^. incomingPeerID);
+    verifyCommand.verifyConnect.outgoingPeerID := ENET_HOST_TO_NET_16 (Peer ^. incomingPeerID);
     verifyCommand.verifyConnect.incomingSessionID := incomingSessionID;
     verifyCommand.verifyConnect.outgoingSessionID := outgoingSessionID;
-    verifyCommand.verifyConnect.mtu := ENET_HOST_TO_NET_32 (currentPeer ^. mtu);
+    verifyCommand.verifyConnect.mtu := ENET_HOST_TO_NET_32 (Peer ^. mtu);
     verifyCommand.verifyConnect.windowSize := ENET_HOST_TO_NET_32 (windowSize);
     verifyCommand.verifyConnect.channelCount := ENET_HOST_TO_NET_32 (channelCount);
     verifyCommand.verifyConnect.incomingBandwidth := ENET_HOST_TO_NET_32 (host ^. incomingBandwidth);
     verifyCommand.verifyConnect.outgoingBandwidth := ENET_HOST_TO_NET_32 (host ^. outgoingBandwidth);
-    verifyCommand.verifyConnect.packetThrottleInterval := ENET_HOST_TO_NET_32 (currentPeer ^. packetThrottleInterval);
-    verifyCommand.verifyConnect.packetThrottleAcceleration := ENET_HOST_TO_NET_32 (currentPeer ^. packetThrottleAcceleration);
-    verifyCommand.verifyConnect.packetThrottleDeceleration := ENET_HOST_TO_NET_32 (currentPeer ^. packetThrottleDeceleration);
-    verifyCommand.verifyConnect.connectID := currentPeer ^. connectID;
+    verifyCommand.verifyConnect.packetThrottleInterval := ENET_HOST_TO_NET_32 (Peer ^. packetThrottleInterval);
+    verifyCommand.verifyConnect.packetThrottleAcceleration := ENET_HOST_TO_NET_32 (Peer ^. packetThrottleAcceleration);
+    verifyCommand.verifyConnect.packetThrottleDeceleration := ENET_HOST_TO_NET_32 (Peer ^. packetThrottleDeceleration);
+    verifyCommand.verifyConnect.connectID := Peer ^. connectID;
 
-    enet_peer_queue_outgoing_command (currentPeer, @ verifyCommand, nil, 0, 0);
+    enet_peer_queue_outgoing_command (Peer, @ verifyCommand, nil, 0, 0);
 
-    result := currentPeer;
+    result := Peer;
 end;
 
 function enet_protocol_handle_send_reliable (host : pENetHost; peer : pENetPeer; command : pENetProtocol; currentData : ppenet_uint8):integer;
 var
-    packet : pENetPacket;
     dataLength : enet_size_t;
 begin
 
@@ -473,16 +495,12 @@ begin
 
     dataLength := ENET_NET_TO_HOST_16 (command ^. sendReliable.dataLength);
     Inc(PAnsiChar(currentData^) , dataLength);
-    if (dataLength > ENET_PROTOCOL_MAXIMUM_PACKET_SIZE) or
+    if (dataLength > host ^. maximumPacketSize) or
        (currentData^ < host ^. receivedData) or
        (currentData^ > @ penet_uint8array(host ^. receivedData)^[host ^. receivedDataLength]) then
        begin result := -1; exit; end;
 
-    packet := enet_packet_create (PAnsiChar(command) + sizeof (ENetProtocolSendReliable),
-                                 dataLength,
-                                 ENET_PACKET_FLAG_RELIABLE);
-    if (packet = nil) or
-       (enet_peer_queue_incoming_command (peer, command, packet, 0) = nil) then
+    if (enet_peer_queue_incoming_command (peer, command, pchar(command) + sizeof (ENetProtocolSendReliable), dataLength, ENET_PACKET_FLAG_RELIABLE, 0) = nil) then
       begin result := -1; exit; end;
 
     result := 0;
@@ -490,7 +508,6 @@ end;
 
 function enet_protocol_handle_send_unsequenced (host : pENetHost; peer : pENetPeer; command : pENetProtocol; currentData : ppenet_uint8):integer;
 var
-    packet : pENetPacket;
     unsequencedGroup, index : enet_uint32;
     dataLength : enet_size_t;
 begin
@@ -501,7 +518,7 @@ begin
 
     dataLength := ENET_NET_TO_HOST_16 (command ^. sendUnsequenced.dataLength);
     inc(PAnsiChar(currentData^) , dataLength);
-    if (dataLength > ENET_PROTOCOL_MAXIMUM_PACKET_SIZE) or
+    if (dataLength > host ^. maximumPacketSize) or
        (currentData^ < host ^. receivedData) or
        (currentData^ > @ penet_uint8array(host ^. receivedData)^[host ^. receivedDataLength]) then
       begin result := -1; exit; end;
@@ -527,11 +544,7 @@ begin
     if 0<>(peer ^. unsequencedWindow [index div 32] and (1 shl (index mod 32))) then
       begin result := 0; exit; end;
 
-    packet := enet_packet_create (PAnsiChar(command)+ sizeof (ENetProtocolSendUnsequenced),
-                                 dataLength,
-                                 ENET_PACKET_FLAG_UNSEQUENCED);
-    if (packet = nil) or
-       (enet_peer_queue_incoming_command (peer, command, packet, 0) = nil) then
+    if (enet_peer_queue_incoming_command (peer, command, pchar(command) + sizeof (ENetProtocolSendUnsequenced), dataLength, ENET_PACKET_FLAG_UNSEQUENCED, 0) = nil) then
       begin result := -1; exit; end;
 
     peer ^. unsequencedWindow [index div 32] := peer ^. unsequencedWindow [index div 32] or enet_uint32(1 shl (index mod 32));
@@ -541,7 +554,6 @@ end;
 
 function enet_protocol_handle_send_unreliable (host : pENetHost; peer : pENetPeer;command : pENetProtocol;currentData : ppenet_uint8):integer;
 var
-    packet : pENetPacket;
     dataLength : enet_size_t;
 begin
 
@@ -551,16 +563,12 @@ begin
 
     dataLength := ENET_NET_TO_HOST_16 (command ^. sendUnreliable.dataLength);
     inc(PAnsiChar(currentData^), dataLength);
-    if (dataLength > ENET_PROTOCOL_MAXIMUM_PACKET_SIZE) or
+    if (dataLength > host ^. maximumPacketSize) or
        (currentData^ < host ^. receivedData) or
        (currentData^ > @ penet_uint8array(host ^. receivedData)^[host ^. receivedDataLength]) then
       begin result := -1; exit; end;
 
-    packet := enet_packet_create (PAnsiChar(command) + sizeof (ENetProtocolSendUnreliable),
-                                 dataLength,
-                                 0);
-    if (packet = nil) or
-       (enet_peer_queue_incoming_command (peer, command, packet, 0) = nil) then
+    if (enet_peer_queue_incoming_command (peer, command, pchar(command) + sizeof (ENetProtocolSendUnreliable), dataLength, 0, 0) = nil) then
       begin result:=-1; exit; end;
 
     result := 0;
@@ -587,7 +595,7 @@ begin
 
     fragmentLength := ENET_NET_TO_HOST_16 (command ^. sendFragment.dataLength);
     inc( currentData^ , fragmentLength);
-    if (fragmentLength > ENET_PROTOCOL_MAXIMUM_PACKET_SIZE) or
+    if (fragmentLength > host ^. maximumPacketSize) or
        (currentData^ < host ^. receivedData) or
        (currentData^ > @ penet_uint8array(host ^. receivedData)^[host ^. receivedDataLength]) then
       begin result := -1; exit; end;
@@ -610,7 +618,7 @@ begin
 
     if (fragmentCount > ENET_PROTOCOL_MAXIMUM_FRAGMENT_COUNT) or
        (fragmentNumber >= fragmentCount) or
-       (totalLength > ENET_PROTOCOL_MAXIMUM_PACKET_SIZE) or
+       (totalLength > host ^. maximumPacketSize) or
        (fragmentOffset >= totalLength) or
        (fragmentLength > totalLength - fragmentOffset) then
       begin result := -1; exit; end;
@@ -649,13 +657,10 @@ continuework1:
     if (startCommand = nil) then
     begin
        hostCommand := command^;
-       packet := enet_packet_create (nil, totalLength, ENET_PACKET_FLAG_RELIABLE);
-       if (packet = nil) then
-         begin result := -1; exit; end;
 
        hostCommand.header.reliableSequenceNumber := startSequenceNumber;
 
-       startCommand := enet_peer_queue_incoming_command (peer, @ hostCommand, packet, fragmentCount);
+       startCommand := enet_peer_queue_incoming_command (peer, @ hostCommand, nil, totalLength, ENET_PACKET_FLAG_RELIABLE, fragmentCount);
        if (startCommand = nil) then
          begin result := -1; exit; end;
     end;
@@ -707,7 +712,7 @@ begin
 
     fragmentLength := ENET_NET_TO_HOST_16 (command ^. sendFragment.dataLength);
     Inc(currentData^, fragmentLength);
-    if (fragmentLength > ENET_PROTOCOL_MAXIMUM_PACKET_SIZE) or
+    if (fragmentLength > host ^. maximumPacketSize) or
        (currentData^ < host ^. receivedData) or
        (currentData^ > @ penet_uint8array(host ^. receivedData )^[host ^. receivedDataLength]) then
        begin
@@ -742,7 +747,7 @@ begin
 
     if (fragmentCount > ENET_PROTOCOL_MAXIMUM_FRAGMENT_COUNT) or
        (fragmentNumber >= fragmentCount) or
-       (totalLength > ENET_PROTOCOL_MAXIMUM_PACKET_SIZE) or
+       (totalLength > host ^. maximumPacketSize) or
        (fragmentOffset >= totalLength) or
        (fragmentLength > totalLength - fragmentOffset) then
          begin
@@ -791,13 +796,7 @@ continue1:
 
     if (startCommand = nil) then
     begin
-       packet := enet_packet_create (nil, totalLength, ENET_PACKET_FLAG_UNRELIABLE_FRAGMENT);
-       if (packet = nil) then
-         begin
-           Result:=-1; exit;
-         end;
-
-       startCommand := enet_peer_queue_incoming_command (peer, command, packet, fragmentCount);
+       startCommand := enet_peer_queue_incoming_command (peer, command, nil, totalLength, ENET_PACKET_FLAG_UNRELIABLE_FRAGMENT, fragmentCount);
        if (startCommand = nil) then
          begin
            Result:=-1; exit;
@@ -841,8 +840,14 @@ begin
         Result:=-1; exit;
       end;
 
+    if (peer ^. incomingBandwidth <> 0) then
+      Dec(host ^. bandwidthLimitedPeers);
+
     peer ^. incomingBandwidth := ENET_NET_TO_HOST_32 (command ^. bandwidthLimit.incomingBandwidth);
     peer ^. outgoingBandwidth := ENET_NET_TO_HOST_32 (command ^. bandwidthLimit.outgoingBandwidth);
+
+    if (peer ^. incomingBandwidth <> 0) then
+      Inc(host ^. bandwidthLimitedPeers);
 
     if (peer ^. incomingBandwidth = 0) and (host ^. outgoingBandwidth = 0) then
       peer ^. windowSize := ENET_PROTOCOL_MAXIMUM_WINDOW_SIZE
@@ -882,7 +887,7 @@ begin
 
     enet_peer_reset_queues (peer);
 
-    if (peer ^. state = ENET_PEER_STATE_CONNECTION_SUCCEEDED) or (peer ^. state = ENET_PEER_STATE_DISCONNECTING) then
+    if ((peer ^. state = ENET_PEER_STATE_CONNECTION_SUCCEEDED) or (peer ^. state = ENET_PEER_STATE_DISCONNECTING) or (peer ^. state = ENET_PEER_STATE_CONNECTING)) then
         enet_protocol_dispatch_state (host, peer, ENET_PEER_STATE_ZOMBIE)
     else
     if (peer ^. state <> ENET_PEER_STATE_CONNECTED) and (peer ^. state <> ENET_PEER_STATE_DISCONNECT_LATER) then
@@ -893,7 +898,7 @@ begin
     end
     else
     if (command ^. header.command and ENET_PROTOCOL_COMMAND_FLAG_ACKNOWLEDGE)<>0 then
-      peer ^. state := ENET_PEER_STATE_ACKNOWLEDGING_DISCONNECT
+      enet_protocol_change_state (host, peer, ENET_PEER_STATE_ACKNOWLEDGING_DISCONNECT)
     else
       enet_protocol_dispatch_state (host, peer, ENET_PEER_STATE_ZOMBIE);
 
@@ -1343,6 +1348,7 @@ var
     buffer : pENetBuffer;
     acknowledgement : pENetAcknowledgement;
     currentAcknowledgement : ENetListIterator;
+    reliableSequenceNumber : enet_uint16;
 begin
     command := @ host ^. commands [host ^. commandCount];
     buffer := @ host ^. buffers [host ^. bufferCount];
@@ -1369,9 +1375,12 @@ begin
 
        inc(host ^. packetSize , buffer ^. dataLength);
 
+       reliableSequenceNumber := ENET_HOST_TO_NET_16 (acknowledgement ^. command.header.reliableSequenceNumber);
+
        command ^. header.command := ENET_PROTOCOL_COMMAND_ACKNOWLEDGE;
        command ^. header.channelID := acknowledgement ^. command.header.channelID;
-       command ^. acknowledge.receivedReliableSequenceNumber := ENET_HOST_TO_NET_16 (acknowledgement ^. command.header.reliableSequenceNumber);
+       command ^. header.reliableSequenceNumber := reliableSequenceNumber;
+       command ^. acknowledge.receivedReliableSequenceNumber := reliableSequenceNumber;
        command ^. acknowledge.receivedSentTime := ENET_HOST_TO_NET_16 (acknowledgement ^. sentTime);
 
        if ((acknowledgement ^. command.header.command and ENET_PROTOCOL_COMMAND_MASK) = ENET_PROTOCOL_COMMAND_DISCONNECT) then
@@ -1969,13 +1978,20 @@ begin
        if (ENET_TIME_GREATER_EQUAL (host ^. serviceTime, timeout)) then
          begin result:=0; exit; end;
 
-       waitCondition := ENET_SOCKET_WAIT_RECEIVE;
+       repeat
+          host ^. serviceTime := enet_time_get ();
 
-       if (enet_socket_wait (host ^. socket, @ waitCondition, ENET_TIME_DIFFERENCE (timeout, host ^. serviceTime)) <> 0) then //
-         begin result:=-1; exit; end;
+          if (ENET_TIME_GREATER_EQUAL (host ^. serviceTime, timeout)) then
+            begin result:=0; exit; end;
+
+          waitCondition := ENET_SOCKET_WAIT_RECEIVE or ENET_SOCKET_WAIT_INTERRUPT;
+
+          if (enet_socket_wait (host ^. socket, @ waitCondition, ENET_TIME_DIFFERENCE (timeout, host ^. serviceTime)) <> 0) then
+            begin result:=-1; exit; end;
+       until (waitCondition and ENET_SOCKET_WAIT_INTERRUPT = 0);
 
        host ^. serviceTime := enet_time_get ();
-    until waitCondition <> ENET_SOCKET_WAIT_RECEIVE;
+    until (waitCondition and ENET_SOCKET_WAIT_RECEIVE = 0);
 
     result := 0;
 end;

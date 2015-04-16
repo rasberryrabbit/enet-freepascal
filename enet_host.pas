@@ -5,7 +5,7 @@ unit enet_host;
  @brief ENet host management functions
 
  freepascal
- 1.3.6
+ 1.3.12
 *)
 
 {$GOTO ON}
@@ -91,7 +91,7 @@ begin
     enet_socket_set_option (host ^. socket, ENET_SOCKOPT_RCVBUF, ENET_HOST_RECEIVE_BUFFER_SIZE);
     enet_socket_set_option (host ^. socket, ENET_SOCKOPT_SNDBUF, ENET_HOST_SEND_BUFFER_SIZE);
 
-    if (address <> nil) then
+    if ((address <> nil) and (enet_socket_get_address (host ^. socket, @host ^. address) < 0)) then
       host ^. address := address^;
 
     if ((channelLimit=0) or (channelLimit > ENET_PROTOCOL_MAXIMUM_CHANNEL_COUNT)) then
@@ -101,11 +101,7 @@ begin
       channelLimit := ENET_PROTOCOL_MINIMUM_CHANNEL_COUNT;
 
     host ^. randomSeed := enet_uint32(host);
-{$ifdef MSWINDOWS}
-    host ^. randomSeed := host ^. randomSeed + enet_uint32 (timeGetTime);
-{$else}
-    host ^. randomSeed := host ^. randomSeed + enet_uint32 (time(NULL));
-{$endif}
+    host ^. randomSeed := host ^. randomSeed + enet_host_random_seed ();
     host ^. randomSeed := (host ^. randomSeed shl 16) or (host ^. randomSeed shr 16);
     host ^. channelLimit := channelLimit;
     host ^. incomingBandwidth := incomingBandwidth;
@@ -126,6 +122,12 @@ begin
     host ^. totalSentPackets := 0;
     host ^. totalReceivedData := 0;
     host ^. totalReceivedPackets := 0;
+
+    host ^. connectedPeers := 0;
+    host ^. bandwidthLimitedPeers := 0;
+    host ^. duplicatePeers := ENET_PROTOCOL_MAXIMUM_PEER_ID;
+    host ^. maximumPacketSize := ENET_HOST_DEFAULT_MAXIMUM_PACKET_SIZE;
+    host ^. maximumWaitingData := ENET_HOST_DEFAULT_MAXIMUM_WAITING_DATA;
 
     host ^. compressor.context := nil;
     host ^. compressor.compress := nil;
@@ -366,40 +368,44 @@ label continuework1, continuework2, continuework3, continuework4, continuework5;
 begin
     timeCurrent := enet_time_get ();
     elapsedTime := timeCurrent - host ^. bandwidthThrottleEpoch;
-    peersTotal := 0;
-    dataTotal := 0;
+    peersRemaining := enet_uint32( host ^. connectedPeers);
+    dataTotal := enet_uint32(not 0);
+    bandwidth := enet_uint32(not 0);
     throttle := 0;
     bandwidthLimit := 0;
+    if host ^. bandwidthLimitedPeers > 0 then
+       needsAdjustment:=1
+       else
+         needsAdjustment:=0;
 
     if (elapsedTime < ENET_HOST_BANDWIDTH_THROTTLE_INTERVAL) then exit;
 
-    peer := host ^. peers;
-    while PAnsiChar(peer) < PAnsiChar(@ pENetPeerArray(host ^. peers)^[host ^. peerCount]) do
+    host ^. bandwidthThrottleEpoch := timeCurrent;
+
+    if (peersRemaining = 0) then
+      exit;
+
+    if (host ^. outgoingBandwidth <> 0) then
     begin
-        if (peer ^. state <> ENET_PEER_STATE_CONNECTED) and (peer ^. state <> ENET_PEER_STATE_DISCONNECT_LATER) then
-          goto continuework1;
+        dataTotal := 0;
+        bandwidth := (host ^. outgoingBandwidth * elapsedTime) div 1000;
 
-        inc(peersTotal);
-        dataTotal := dataTotal + peer ^. outgoingDataTotal;
+        peer := host ^. peers;
+        while pchar(peer) < pchar(@ pENetPeerArray(host ^. peers)^[host ^. peerCount]) do
+        begin
+            if ((peer ^. state <> ENET_PEER_STATE_CONNECTED) and (peer ^. state <> ENET_PEER_STATE_DISCONNECT_LATER)) then
+              goto continuework1;
+            Inc(dataTotal, peer ^. outgoingDataTotal);
 continuework1:
-        inc(peer);
+            Inc(peer);
+        end;
     end;
-
-    if (peersTotal = 0) then exit;
-
-    peersRemaining := peersTotal;
-    needsAdjustment := 1;
-
-    if (host ^. outgoingBandwidth = 0) then
-      bandwidth := not longword(0)
-    else
-      bandwidth := (host ^. outgoingBandwidth * elapsedTime) div 1000;
 
     while (peersRemaining > 0) and (needsAdjustment <> 0) do
     begin
         needsAdjustment := 0;
 
-        if (dataTotal < bandwidth) then
+        if (dataTotal <= bandwidth) then
           throttle := ENET_PEER_PACKET_THROTTLE_SCALE
         else
           throttle := (bandwidth * ENET_PEER_PACKET_THROTTLE_SCALE) div dataTotal;
@@ -428,6 +434,8 @@ continuework1:
 
             peer ^. outgoingBandwidthThrottleEpoch := timeCurrent;
 
+            peer ^. incomingDataTotal := 0;
+            peer ^. outgoingDataTotal := 0;
 
             needsAdjustment := 1;
             dec(peersRemaining);
@@ -439,19 +447,27 @@ continuework2:
     end;
 
     if (peersRemaining > 0) then begin
+      if (dataTotal <= bandwidth) then
+         throttle := ENET_PEER_PACKET_THROTTLE_SCALE
+       else
+         throttle := (bandwidth * ENET_PEER_PACKET_THROTTLE_SCALE) div dataTotal;
+
       peer := host ^. peers;
-      while PAnsiChar(peer) < PAnsiChar(@ pENetPeerArray(host ^. peers)^[host ^. peerCount]) do
+      while PChar(peer) < PChar(@ pENetPeerArray(host ^. peers)^[host ^. peerCount]) do
       begin
-          if ((peer ^. state <> ENET_PEER_STATE_CONNECTED) and (peer ^. state <> ENET_PEER_STATE_DISCONNECT_LATER)) or
-              (peer ^. outgoingBandwidthThrottleEpoch = timeCurrent) then
-            goto continuework3;
+           if ((peer ^. state <> ENET_PEER_STATE_CONNECTED) and (peer ^. state <> ENET_PEER_STATE_DISCONNECT_LATER)) or
+               (peer ^. outgoingBandwidthThrottleEpoch = timeCurrent) then
+             goto continuework3;
 
-          peer ^. packetThrottleLimit := throttle;
+           peer ^. packetThrottleLimit := throttle;
 
-          if (peer ^. packetThrottle > peer ^. packetThrottleLimit) then
-            peer ^. packetThrottle := peer ^. packetThrottleLimit;
+           if (peer ^. packetThrottle > peer ^. packetThrottleLimit) then
+             peer ^. packetThrottle := peer ^. packetThrottleLimit;
+
+           peer ^. incomingDataTotal := 0;
+           peer ^. outgoingDataTotal := 0;
 continuework3:
-          inc(peer);
+           Inc(peer);
       end;
     end;
 
@@ -459,7 +475,7 @@ continuework3:
     begin
        host ^. recalculateBandwidthLimits := 0;
 
-       peersRemaining := peersTotal;
+       peersRemaining := enet_uint32(host ^. connectedPeers);
        bandwidth := host ^. incomingBandwidth;
        needsAdjustment := 1;
 
@@ -512,16 +528,6 @@ continuework4:
 continuework5:
            inc(peer);
        end;
-    end;
-
-    host ^. bandwidthThrottleEpoch := timeCurrent;
-
-    peer := host ^. peers;
-    while PAnsiChar(peer) < PAnsiChar(@ pENetPeerArray(host ^. peers)^[host ^. peerCount]) do
-    begin
-        peer ^. incomingDataTotal := 0;
-        peer ^. outgoingDataTotal := 0;
-        inc(peer);
     end;
 end;
 
