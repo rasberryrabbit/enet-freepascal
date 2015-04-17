@@ -27,8 +27,6 @@ implementation
 uses enet_peer, enet_packet, enet_list, enet_socket, enet_callbacks
   {$ifdef MSWINDOWS}
   , mmsystem
-  {$else}
-  , oldlunux
   {$endif}
   ;
 

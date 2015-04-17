@@ -108,7 +108,7 @@ const
 
    (** packet must be received by the target peer and resend attempts should be
      * made until the packet is delivered *)
-   ENET_SOCKET_NULL = Tsocket(INVALID_SOCKET);
+   ENET_SOCKET_NULL = Tsocket({$ifdef MSWINDOWS}INVALID_SOCKET{$else}-1{$endif});
 
    (** packet must be received by the target peer and resend attempts should be
      * made until the packet is delivered *)
