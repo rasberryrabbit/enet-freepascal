@@ -13,6 +13,8 @@ unit enet_socket;
  linux socket implementaion wasn't tested.
 *)
 
+{$define HAS_FCNTL}
+
 interface
 
 uses enet_consts , Sockets,
@@ -20,8 +22,8 @@ uses enet_consts , Sockets,
   WinSock2
   {$else}
   BaseUnix,
-  Unix,
-  fpunixsocket
+  Unix
+  //,fpunixsocket
   {$endif}
   ;
 
@@ -102,7 +104,7 @@ uses
 {$ifndef MSWINDOWS}
 const
   EINTR = 4;
-  EWOULDBLOCK = 35;
+  EWOULDBLOCK = 11;
 {$endif}
 
 var
@@ -312,7 +314,7 @@ begin
 
     if (address <> nil) then
     begin
-       sin.sin_port := ENET_HOST_TO_NET_16 (address ^. port);
+       sin.sin_port := ENET_HOST_TO_NET_16(address ^. port);
        sin.sin_addr.s_addr := address ^. host;
     end
     else
@@ -385,7 +387,11 @@ begin
             {$ifdef MSWINDOWS}
             iResult := ioctlsocket (socket, LongInt(FIONBIO), nonBlocking);
             {$else}
-            iResult := fpioctl (socket, FIONBIO, @nonBlocking);
+              {$ifdef HAS_FCNTL}
+              iResult := fpfcntl (socket, F_SETFL, O_NONBLOCK or fpfcntl (socket, F_GETFL, 0));
+              {$else}
+              iResult := fpioctl (socket, FIONBIO, @nonBlocking);
+              {$endif}
             {$endif}
         end;
 
@@ -547,11 +553,12 @@ var
   ipto : PSockAddr;
   iptolen : integer;
 {$else}
-  _msghdr : Tmsghdr;
+  //_msghdr : Tmsghdr;
+  iSent : Integer;
 {$endif}
 begin
     {$ifndef MSWINDOWS}
-    FillChar(_msghdr,sizeof(Tmsghdr),0);
+    //FillChar(_msghdr,sizeof(Tmsghdr),0);
     {$endif}
 
     if (address <> nil) then
@@ -561,8 +568,10 @@ begin
         sin.sin_port :=ENET_HOST_TO_NET_16 (address ^. port);
         sin.sin_addr.s_addr :=address ^. host;
         {$ifndef MSWINDOWS}
+        {
         _msghdr.msg_name := @sin;
         _msghdr.msg_namelen := sizeof(sockaddr_in);
+        }
         {$endif}
     end;
 
@@ -589,12 +598,26 @@ begin
        result := -1; exit;
     end;
     {$else}
+    {
     _msgHdr.msg_iov := piovec(buffers);
     _msgHdr.msg_iovlen := bufferCount;
 
     sentLength := fpsendmsg (socket, @_msgHdr, MSG_NOSIGNAL);
+    }
+    sentLength:=0;
+    while bufferCount>0 do begin;
+       iSent:=fpsendto(socket,buffers^.data,buffers^.dataLength,MSG_NOSIGNAL,@sin,sizeof(sockaddr_in));
+       if iSent=-1 then
+         begin
+            integer(sentLength):=-1;
+            break;
+         end;
+       Inc(sentLength,iSent);
+       Inc(buffers);
+       Dec(bufferCount);
+    end;
 
-    if (sentLength = -1) then
+    if (integer(sentLength) = -1) then
     begin
        if (errno = EWOULDBLOCK) then
          begin
@@ -621,7 +644,8 @@ var
   ipfrom : PSockAddr;
   ipfromlen : pinteger;
   {$else}
-  _msghdr : Tmsghdr;
+  //_msghdr : Tmsghdr;
+  slen : TSocklen;
   {$endif}
 begin
     {$ifdef MSWINDOWS}
@@ -656,6 +680,7 @@ begin
     if (flags and MSG_PARTIAL)<>0 then
       begin result := -1; exit; end;
     {$else}
+    {
     fillchar(_msgHdr, sizeof(Tmsghdr), 0);
 
     if (address <> nil) then
@@ -668,16 +693,21 @@ begin
     _msgHdr.msg_iovlen := bufferCount;
 
     recvLength := fprecvmsg (socket, @ _msgHdr, MSG_NOSIGNAL);
+    }
 
-    if (recvLength = -1) then
+    slen := sizeof(sockaddr_in);
+    recvLength:=fprecvfrom(socket,buffers^.data,buffers^.dataLength,MSG_NOSIGNAL,@sin,@slen);
+
+    if (integer(recvLength) = -1) then
     begin
+       Result:=errno;
        if (errno = EWOULDBLOCK) then
           begin
              Result:=0; exit;
           end;
-
        Result:=-1; exit;
-    end;
+    end else
+      Result:=recvLength;
 
 {$ifdef _APPLE_}
     if (_msgHdr.msg_flags and MSG_TRUNC <> 0) then
@@ -714,47 +744,47 @@ var
   timeVal : TTimeVal;
   selectCount : integer;
 begin
-{    #ifdef HAS_POLL
+{$ifdef HAS_POLL}
         struct pollfd pollSocket;
         int pollCount;
 
-        pollSocket.fd = socket;
-        pollSocket.events = 0;
+        pollSocket.fd := socket;
+        pollSocket.events := 0;
 
-        if (* condition & ENET_SOCKET_WAIT_SEND)
+        if ( condition^ and ENET_SOCKET_WAIT_SEND<>0) then
           pollSocket.events |= POLLOUT;
 
-        if (* condition & ENET_SOCKET_WAIT_RECEIVE)
+        if ( condition^ and ENET_SOCKET_WAIT_RECEIVE<>0) then
           pollSocket.events |= POLLIN;
 
-        pollCount = poll (& pollSocket, 1, timeout);
+        pollCount := fppoll (& pollSocket, 1, timeout);
 
-        if (pollCount < 0)
-        {
-            if (errno == EINTR && * condition & ENET_SOCKET_WAIT_INTERRUPT)
-            {
-                * condition = ENET_SOCKET_WAIT_INTERRUPT;
+        if (pollCount < 0) then
+        begin
+            if ((errno = EINTR) and ( condition^ and ENET_SOCKET_WAIT_INTERRUPT<>0))
+            begin
+                condition^ := ENET_SOCKET_WAIT_INTERRUPT;
 
                 return 0;
-            }
+            end;
 
             return -1;
-        }
+        end;
 
-        * condition = ENET_SOCKET_WAIT_NONE;
+        condition^ := ENET_SOCKET_WAIT_NONE;
 
-        if (pollCount == 0)
+        if (pollCount = 0) then
           return 0;
 
-        if (pollSocket.revents & POLLOUT)
+        if (pollSocket.revents and POLLOUT<>0) then
           * condition |= ENET_SOCKET_WAIT_SEND;
 
-        if (pollSocket.revents & POLLIN)
+        if (pollSocket.revents and POLLIN<>0) then
           * condition |= ENET_SOCKET_WAIT_RECEIVE;
 
         return 0;
     #else
-}
+{$endif}
     timeVal.tv_sec :=timeout div 1000;
     timeVal.tv_usec :=(timeout mod 1000) * 1000;
 
