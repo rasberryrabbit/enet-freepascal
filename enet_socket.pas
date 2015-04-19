@@ -388,7 +388,10 @@ begin
             iResult := ioctlsocket (socket, LongInt(FIONBIO), nonBlocking);
             {$else}
               {$ifdef HAS_FCNTL}
-              iResult := fpfcntl (socket, F_SETFL, O_NONBLOCK or fpfcntl (socket, F_GETFL, 0));
+              if nonBlocking<>0 then
+                 iResult := fpfcntl (socket, F_SETFL, O_NONBLOCK or fpfcntl (socket, F_GETFL, 0))
+                 else
+                   iResult := fpfcntl (socket, F_SETFL, not(O_NONBLOCK) and fpfcntl (socket, F_GETFL, 0));
               {$else}
               iResult := fpioctl (socket, FIONBIO, @nonBlocking);
               {$endif}
@@ -700,14 +703,13 @@ begin
 
     if (integer(recvLength) = -1) then
     begin
-       Result:=errno;
+       { todo: error 11 }
        if (errno = EWOULDBLOCK) then
           begin
              Result:=0; exit;
           end;
        Result:=-1; exit;
-    end else
-      Result:=recvLength;
+    end;
 
 {$ifdef _APPLE_}
     if (_msgHdr.msg_flags and MSG_TRUNC <> 0) then
