@@ -23,7 +23,6 @@ uses enet_consts , Sockets,
   {$else}
   BaseUnix,
   Unix
-  //,fpunixsocket
   {$endif}
   ;
 
@@ -556,26 +555,17 @@ var
   ipto : PSockAddr;
   iptolen : integer;
 {$else}
-  //_msghdr : Tmsghdr;
-  iSent : Integer;
+  iCount, iBufLen, iBufPos : Integer;
+  pbuf : pchar;
+  pnetbuf : pENetBuffer;
 {$endif}
 begin
-    {$ifndef MSWINDOWS}
-    //FillChar(_msghdr,sizeof(Tmsghdr),0);
-    {$endif}
-
     if (address <> nil) then
     begin
         fillchar(sin,sizeof(sockaddr_in),0);
         sin.sin_family :=AF_INET;
         sin.sin_port :=ENET_HOST_TO_NET_16 (address ^. port);
         sin.sin_addr.s_addr :=address ^. host;
-        {$ifndef MSWINDOWS}
-        {
-        _msghdr.msg_name := @sin;
-        _msghdr.msg_namelen := sizeof(sockaddr_in);
-        }
-        {$endif}
     end;
 
     {$ifdef MSWINDOWS}
@@ -601,23 +591,32 @@ begin
        result := -1; exit;
     end;
     {$else}
-    {
-    _msgHdr.msg_iov := piovec(buffers);
-    _msgHdr.msg_iovlen := bufferCount;
+    // emulate sendmsg
+    // get buffer length
+    iBufLen:=0;
+    pnetbuf:=buffers;
+    iCount:=bufferCount;
+    while iCount>0 do begin
+       Inc(iBufLen,pnetbuf^.dataLength);
+       Inc(pnetbuf);
+       Dec(iCount);
+    end;
+    GetMem(pbuf,iBufLen);
+    try
+      // copy memory
+      pnetbuf:=buffers;
+      iCount:=bufferCount;
+      iBufPos:=0;
+      while iCount>0 do begin
+        system.Move(pnetbuf^.data^,(pbuf+iBufPos)^,pnetbuf^.dataLength);
+        Inc(iBufPos,pnetbuf^.dataLength);
+        Inc(pnetbuf);
+        Dec(iCount);
+      end;
+      sentLength:=fpsendto(socket,pbuf,iBufLen,MSG_NOSIGNAL,@sin,sizeof(sockaddr_in));
 
-    sentLength := fpsendmsg (socket, @_msgHdr, MSG_NOSIGNAL);
-    }
-    sentLength:=0;
-    while bufferCount>0 do begin;
-       iSent:=fpsendto(socket,buffers^.data,buffers^.dataLength,MSG_NOSIGNAL,@sin,sizeof(sockaddr_in));
-       if iSent=-1 then
-         begin
-            integer(sentLength):=-1;
-            break;
-         end;
-       Inc(sentLength,iSent);
-       Inc(buffers);
-       Dec(bufferCount);
+    finally
+      Freemem(pbuf);
     end;
 
     if (integer(sentLength) = -1) then
@@ -647,10 +646,7 @@ var
   ipfrom : PSockAddr;
   ipfromlen : pinteger;
   {$else}
-  //_msghdr : Tmsghdr;
   slen : TSocklen;
-  pBuf : pchar;
-  iRead : Integer;
   {$endif}
 begin
     {$ifdef MSWINDOWS}
@@ -685,39 +681,11 @@ begin
     if (flags and MSG_PARTIAL)<>0 then
       begin result := -1; exit; end;
     {$else}
-    {
-    fillchar(_msgHdr, sizeof(Tmsghdr), 0);
-
-    if (address <> nil) then
-    begin
-        _msgHdr.msg_name := @ sin;
-        _msgHdr.msg_namelen := sizeof(sockaddr_in);
-    end;
-
-    _msgHdr.msg_iov := Pointer(buffers);
-    _msgHdr.msg_iovlen := bufferCount;
-
-    recvLength := fprecvmsg (socket, @ _msgHdr, MSG_NOSIGNAL);
-    }
-    pbuf := buffers^.data;
-    iRead:=0;
-    recvLength:=0;
-    repeat
-      slen := sizeof(sockaddr_in);
-      iRead:=fprecvfrom(socket,pbuf,buffers^.dataLength-recvLength,MSG_NOSIGNAL,@sin,@slen);
-      if iRead<>-1 then begin
-         Inc(pbuf,iRead);
-         Inc(recvLength,iRead);
-         if buffers^.dataLength-recvLength=0 then
-           break;
-      end else
-        if recvLength=0 then
-          integer(recvLength):=-1;
-    until iRead=-1;
+    slen := sizeof(sockaddr_in);
+    recvLength:=fprecvfrom(socket,buffers^.data,buffers^.dataLength,MSG_NOSIGNAL,@sin,@slen);
 
     if (integer(recvLength) = -1) then
     begin
-       { todo: error 11 }
        if (errno = EWOULDBLOCK) then
           begin
              Result:=0; exit;
