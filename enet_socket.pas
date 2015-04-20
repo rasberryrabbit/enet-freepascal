@@ -238,7 +238,7 @@ begin
     {$else}
     if not gethostbyname (name, hostEntry) then
     begin
-        address ^.host := enet_uint32(StrToHostAddr(name));
+        address ^.host := enet_uint32(htonl(StrToHostAddr(name).s_addr));
         if address ^.host=0 then
             begin result:=-1; exit; end;
     {$endif}
@@ -247,7 +247,7 @@ begin
     {$ifdef MSWINDOWS}
     address ^. host := (penet_uint32(hostEntry^.h_addr_list^))^;
     {$else}
-    address ^. host := enet_uint32(hostEntry.Addr);
+    address ^. host := enet_uint32(htonl(hostEntry.Addr.s_addr));
     {$endif}
     result := 0;
 end;
@@ -260,7 +260,7 @@ begin
     {$ifdef MSWINDOWS}
     addr :=inet_ntoa (pInAddr(@address ^. host)^);
     {$else}
-    addr := PAnsiChar(HostAddrToStr(in_addr(address^.host)));
+    addr := PAnsiChar(HostAddrToStr(in_addr(NToHl(address^.host))));
     if addr='' then addr:=nil;
     {$endif}
     if (addr = nil) then
@@ -281,7 +281,7 @@ var
   hostLen : SizeInt;
 begin
 
-    inadd.s_addr :=address ^. host;
+    inadd.s_addr :={$ifndef MSWINDOWS}NToHl{$endif}(address ^. host);
 
     {$ifdef MSWINDOWS}
     hostEntry :=gethostbyaddr (@inadd, sizeof (TInAddr), AF_INET);
@@ -649,6 +649,8 @@ var
   {$else}
   //_msghdr : Tmsghdr;
   slen : TSocklen;
+  pBuf : pchar;
+  iRead : Integer;
   {$endif}
 begin
     {$ifdef MSWINDOWS}
@@ -697,9 +699,21 @@ begin
 
     recvLength := fprecvmsg (socket, @ _msgHdr, MSG_NOSIGNAL);
     }
-
-    slen := sizeof(sockaddr_in);
-    recvLength:=fprecvfrom(socket,buffers^.data,buffers^.dataLength,MSG_NOSIGNAL,@sin,@slen);
+    pbuf := buffers^.data;
+    iRead:=0;
+    recvLength:=0;
+    repeat
+      slen := sizeof(sockaddr_in);
+      iRead:=fprecvfrom(socket,pbuf,buffers^.dataLength-recvLength,MSG_NOSIGNAL,@sin,@slen);
+      if iRead<>-1 then begin
+         Inc(pbuf,iRead);
+         Inc(recvLength,iRead);
+         if buffers^.dataLength-recvLength=0 then
+           break;
+      end else
+        if recvLength=0 then
+          integer(recvLength):=-1;
+    until iRead=-1;
 
     if (integer(recvLength) = -1) then
     begin
@@ -710,7 +724,6 @@ begin
           end;
        Result:=-1; exit;
     end;
-
 {$ifdef _APPLE_}
     if (_msgHdr.msg_flags and MSG_TRUNC <> 0) then
        begin
@@ -721,7 +734,7 @@ begin
 
     if (address <> nil) then
     begin
-        address ^. host :=enet_uint32( sin.sin_addr.s_addr);
+        address ^. host :=enet_uint32(sin.sin_addr.s_addr);
         address ^. port :=ENET_NET_TO_HOST_16 (sin.sin_port);
     end;
 
@@ -786,7 +799,7 @@ begin
 
         return 0;
     #else
-{$endif}
+{$else}
     timeVal.tv_sec :=timeout div 1000;
     timeVal.tv_usec :=(timeout mod 1000) * 1000;
 
@@ -824,7 +837,7 @@ begin
 
     if ({$ifdef MSWINDOWS}FD_ISSET{$else}0<>fpFD_ISSET{$endif} (socket, readSet)) then
       condition^ := condition^ or ENET_SOCKET_WAIT_RECEIVE;
-
+{$endif}
     result := 0;
 end;
 
