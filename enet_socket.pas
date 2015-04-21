@@ -727,21 +727,22 @@ var
   readSet, writeSet : TFDSet;
   timeVal : TTimeVal;
   selectCount : integer;
+{$ifdef HAS_POLL}
+  pollCount : Integer;
+  pollSocket : tpollfd;
+{$endif}
 begin
 {$ifdef HAS_POLL}
-        struct pollfd pollSocket;
-        int pollCount;
-
         pollSocket.fd := socket;
         pollSocket.events := 0;
 
         if ( condition^ and ENET_SOCKET_WAIT_SEND<>0) then
-          pollSocket.events |= POLLOUT;
+          pollSocket.events := pollSocket.events or POLLOUT;
 
         if ( condition^ and ENET_SOCKET_WAIT_RECEIVE<>0) then
-          pollSocket.events |= POLLIN;
+          pollSocket.events := pollSocket.events or POLLIN;
 
-        pollCount := fppoll (& pollSocket, 1, timeout);
+        pollCount := fppoll (@ pollSocket, 1, timeout);
 
         if (pollCount < 0) then
         begin
@@ -749,25 +750,22 @@ begin
             begin
                 condition^ := ENET_SOCKET_WAIT_INTERRUPT;
 
-                return 0;
+                Result:=0; exit;
             end;
 
-            return -1;
+            Result:=-1; exit;
         end;
 
         condition^ := ENET_SOCKET_WAIT_NONE;
 
         if (pollCount = 0) then
-          return 0;
+          begin Result:=0; exit; end;
 
         if (pollSocket.revents and POLLOUT<>0) then
-          * condition |= ENET_SOCKET_WAIT_SEND;
+          condition^ := condition^ or ENET_SOCKET_WAIT_SEND;
 
         if (pollSocket.revents and POLLIN<>0) then
-          * condition |= ENET_SOCKET_WAIT_RECEIVE;
-
-        return 0;
-    #else
+          condition^ := condition^ or ENET_SOCKET_WAIT_RECEIVE;
 {$else}
     timeVal.tv_sec :=timeout div 1000;
     timeVal.tv_usec :=(timeout mod 1000) * 1000;
