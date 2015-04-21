@@ -4,7 +4,7 @@
     <PathDelim Value="\"/>
     <Version Value="9"/>
     <BuildModes Active="Default"/>
-    <Units Count="34">
+    <Units Count="39">
       <Unit0>
         <Filename Value="enetpas_server.lpr"/>
         <IsPartOfProject Value="True"/>
@@ -18,8 +18,8 @@
         <HasResources Value="True"/>
         <ResourceBaseClass Value="Form"/>
         <UnitName Value="enetpas_server_main"/>
-        <IsVisibleTab Value="True"/>
-        <CursorPos X="63" Y="51"/>
+        <TopLine Value="46"/>
+        <CursorPos Y="87"/>
         <UsageCount Value="83"/>
         <Loaded Value="True"/>
         <LoadedDesigner Value="True"/>
@@ -206,51 +206,115 @@
       <Unit33>
         <Filename Value="..\uenetclass.pas"/>
         <UnitName Value="uENetClass"/>
-        <EditorIndex Value="-1"/>
+        <EditorIndex Value="1"/>
         <UsageCount Value="10"/>
+        <Loaded Value="True"/>
       </Unit33>
+      <Unit34>
+        <Filename Value="..\enet_host.pas"/>
+        <EditorIndex Value="-1"/>
+        <CursorPos X="18" Y="28"/>
+        <UsageCount Value="10"/>
+      </Unit34>
+      <Unit35>
+        <Filename Value="..\enet_socket.pas"/>
+        <UnitName Value="enet_socket"/>
+        <IsVisibleTab Value="True"/>
+        <EditorIndex Value="2"/>
+        <TopLine Value="536"/>
+        <CursorPos X="5" Y="564"/>
+        <UsageCount Value="10"/>
+        <Loaded Value="True"/>
+      </Unit35>
+      <Unit36>
+        <Filename Value="..\enet_protocol.pas"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="55"/>
+        <UsageCount Value="10"/>
+      </Unit36>
+      <Unit37>
+        <Filename Value="..\enet_consts.pas"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="63"/>
+        <CursorPos X="3" Y="24"/>
+        <UsageCount Value="10"/>
+      </Unit37>
+      <Unit38>
+        <Filename Value="C:\development\fpc\packages\rtl-extra\src\win\winsock2.pp"/>
+        <UnitName Value="WinSock2"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="1175"/>
+        <CursorPos X="10" Y="1189"/>
+        <UsageCount Value="10"/>
+      </Unit38>
     </Units>
-    <JumpHistory Count="10" HistoryIndex="9">
+    <JumpHistory Count="17" HistoryIndex="16">
       <Position1>
-        <Filename Value="enetpas_server_main.pas"/>
-        <Caret Line="50" TopLine="33"/>
+        <Filename Value="..\uenetclass.pas"/>
+        <Caret Line="296" Column="16" TopLine="293"/>
       </Position1>
       <Position2>
-        <Filename Value="enetpas_server_main.pas"/>
-        <Caret Line="57" TopLine="41"/>
+        <Filename Value="..\enet_socket.pas"/>
+        <Caret Line="538" Column="36" TopLine="530"/>
       </Position2>
       <Position3>
-        <Filename Value="enetpas_server_main.pas"/>
-        <Caret Line="46" Column="29" TopLine="35"/>
+        <Filename Value="..\enet_socket.pas"/>
       </Position3>
       <Position4>
-        <Filename Value="enetpas_server_main.pas"/>
-        <Caret Line="25" Column="24" TopLine="15"/>
+        <Filename Value="..\enet_socket.pas"/>
+        <Caret Line="814" Column="53" TopLine="784"/>
       </Position4>
       <Position5>
-        <Filename Value="enetpas_server_main.pas"/>
-        <Caret Line="49" Column="33" TopLine="34"/>
+        <Filename Value="..\uenetclass.pas"/>
+        <Caret Line="296" Column="16" TopLine="293"/>
       </Position5>
       <Position6>
-        <Filename Value="enetpas_server_main.pas"/>
-        <Caret Line="47" TopLine="34"/>
+        <Filename Value="..\enet_socket.pas"/>
       </Position6>
       <Position7>
-        <Filename Value="enetpas_server_main.pas"/>
-        <Caret Line="48" TopLine="34"/>
+        <Filename Value="..\enet_socket.pas"/>
+        <Caret Line="326" Column="37" TopLine="313"/>
       </Position7>
       <Position8>
-        <Filename Value="enetpas_server_main.pas"/>
-        <Caret Line="49" TopLine="34"/>
+        <Filename Value="..\enet_socket.pas"/>
+        <Caret Line="357" Column="37" TopLine="343"/>
       </Position8>
       <Position9>
-        <Filename Value="enetpas_server_main.pas"/>
-        <Caret Line="50" TopLine="34"/>
+        <Filename Value="..\enet_socket.pas"/>
+        <Caret Line="370" Column="35" TopLine="356"/>
       </Position9>
       <Position10>
-        <Filename Value="enetpas_server_main.pas"/>
-        <Caret Line="51" TopLine="34"/>
+        <Filename Value="..\enet_socket.pas"/>
+        <Caret Line="411" Column="77" TopLine="397"/>
       </Position10>
+      <Position11>
+        <Filename Value="..\enet_socket.pas"/>
+        <Caret Line="437" Column="77" TopLine="426"/>
+      </Position11>
+      <Position12>
+        <Filename Value="..\enet_socket.pas"/>
+        <Caret Line="480" Column="40" TopLine="467"/>
+      </Position12>
+      <Position13>
+        <Filename Value="..\enet_socket.pas"/>
+        <Caret Line="501" Column="18" TopLine="487"/>
+      </Position13>
+      <Position14>
+        <Filename Value="..\enet_socket.pas"/>
+        <Caret Line="512" Column="38" TopLine="499"/>
+      </Position14>
+      <Position15>
+        <Filename Value="..\enet_socket.pas"/>
+        <Caret Line="545" Column="16" TopLine="532"/>
+      </Position15>
+      <Position16>
+        <Filename Value="..\enet_socket.pas"/>
+        <Caret Line="545" Column="12" TopLine="532"/>
+      </Position16>
+      <Position17>
+        <Filename Value="..\enet_socket.pas"/>
+        <Caret Line="76" Column="16" TopLine="58"/>
+      </Position17>
     </JumpHistory>
   </ProjectSession>
 </CONFIG>

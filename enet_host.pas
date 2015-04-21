@@ -25,7 +25,7 @@ procedure enet_host_destroy (host : pENetHost);
 implementation
 
 uses enet_peer, enet_packet, enet_list, enet_socket, enet_callbacks
-  {$ifdef MSWINDOWS}
+  {$ifdef WINDOWS}
   , mmsystem
   {$endif}
   ;

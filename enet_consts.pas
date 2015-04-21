@@ -17,7 +17,13 @@ unit enet_consts;
 
 interface
 
-uses Sockets;
+uses
+{$ifdef WINDOWS}
+  WinSock2
+{$else}
+  Sockets
+{$endif}
+ ;
 
 type
 // types.h <-----
@@ -108,7 +114,7 @@ const
 
    (** packet must be received by the target peer and resend attempts should be
      * made until the packet is delivered *)
-   ENET_SOCKET_NULL = Tsocket({$ifdef MSWINDOWS}INVALID_SOCKET{$else}-1{$endif});
+   ENET_SOCKET_NULL = Tsocket({$ifdef WINDOWS}INVALID_SOCKET{$else}-1{$endif});
 
    (** packet must be received by the target peer and resend attempts should be
      * made until the packet is delivered *)
@@ -286,7 +292,7 @@ type
 // -----> callbacks.h
 
   pENetAddress = ^ENetAddress;
-  ENetAddress = {$IFDEF PACK} packed {$ENDIF} record
+  ENetAddress = record
     host : enet_uint32;
     port : enet_uint16;
   end;
@@ -306,26 +312,28 @@ type
   end;
 // -----> list.h
 
+{$push}
+{$align 1}
 // protocol.h <-----
   pENetProtocolHeader = ^ENetProtocolHeader;
-  ENetProtocolHeader = packed record
+  ENetProtocolHeader = record
    peerID : enet_uint16;
    sentTime : enet_uint16;
   end;
 
-  ENetProtocolCommandHeader = packed record
+  ENetProtocolCommandHeader = record
    command :enet_uint8;
    channelID :enet_uint8;
    reliableSequenceNumber : enet_uint16;
   end;
 
-  ENetProtocolAcknowledge = packed record
+  ENetProtocolAcknowledge = record
    header : ENetProtocolCommandHeader;
    receivedReliableSequenceNumber : enet_uint16;
    receivedSentTime : enet_uint16;
   end;
 
-  ENetProtocolConnect = packed record
+  ENetProtocolConnect = record
    header : ENetProtocolCommandHeader;
    outgoingPeerID : enet_uint16;
    incomingSessionID : enet_uint8;
@@ -342,7 +350,7 @@ type
    data : enet_uint32;
   end;
 
-  ENetProtocolVerifyConnect = packed record
+  ENetProtocolVerifyConnect = record
    header : ENetProtocolCommandHeader;
    outgoingPeerID : enet_uint16;
    incomingSessionID : enet_uint8;
@@ -358,46 +366,46 @@ type
    connectID : enet_uint32;
   end;
 
-  ENetProtocolBandwidthLimit = packed record
+  ENetProtocolBandwidthLimit = record
    header : ENetProtocolCommandHeader;
    incomingBandwidth : enet_uint32;
    outgoingBandwidth : enet_uint32;
   end;
 
-  ENetProtocolThrottleConfigure = packed record
+  ENetProtocolThrottleConfigure = record
    header : ENetProtocolCommandHeader;
    packetThrottleInterval : enet_uint32;
    packetThrottleAcceleration : enet_uint32;
    packetThrottleDeceleration : enet_uint32;
   end;
 
-  ENetProtocolDisconnect = packed record
+  ENetProtocolDisconnect = record
    header : ENetProtocolCommandHeader;
    data : enet_uint32;
   end;
 
-  ENetProtocolPing = packed record
+  ENetProtocolPing = record
    header : ENetProtocolCommandHeader;
   end;
 
-  ENetProtocolSendReliable = packed record
+  ENetProtocolSendReliable = record
     header : ENetProtocolCommandHeader;
     dataLength :enet_uint16;
   end;
 
-  ENetProtocolSendUnreliable = packed record
+  ENetProtocolSendUnreliable = record
    header : ENetProtocolCommandHeader;
    unreliableSequenceNumber :enet_uint16;
    dataLength :enet_uint16;
   end;
 
-  ENetProtocolSendUnsequenced = packed record
+  ENetProtocolSendUnsequenced = record
    header : ENetProtocolCommandHeader;
    unsequencedGroup :enet_uint16;
    dataLength :enet_uint16;
   end;
 
-  ENetProtocolSendFragment = packed record
+  ENetProtocolSendFragment = record
    header : ENetProtocolCommandHeader;
    startSequenceNumber :enet_uint16;
    dataLength :enet_uint16;
@@ -408,7 +416,7 @@ type
   end;
 
   pENetProtocol = ^ENetProtocol;
-  ENetProtocol = packed record
+  ENetProtocol = record
    case integer of
    0 : (header : ENetProtocolCommandHeader);
    1 : (acknowledge : ENetProtocolAcknowledge);
@@ -424,8 +432,9 @@ type
    11: (throttleConfigure : ENetProtocolThrottleConfigure);
   end;
 // -----> protocol.h
+{$pop}
 
-  ENetPacket = {$IFDEF PACK} packed {$ENDIF} record
+  ENetPacket = record
     referenceCount  : enet_uint32;  (**< internal use only *)
     flags           : enet_uint32;           (**< bitwise-or of ENetPacketFlag constants *)
     data            : pbyte;            (**< allocated data for packet *)
@@ -435,14 +444,14 @@ type
   end;
 
   pENetAcknowledgement = ^ENetAcknowledgement;
-  ENetAcknowledgement = {$IFDEF PACK} packed {$ENDIF} record
+  ENetAcknowledgement = record
     acknowledgementList   : ENetListNode;
     sentTime              : enet_uint32;
     command               : ENetProtocol;
   end;
 
   pENetOutgoingCommand= ^ENetOutgoingCommand;
-  ENetOutgoingCommand = {$IFDEF PACK} packed {$ENDIF} record
+  ENetOutgoingCommand = record
     outgoingCommandList     : ENetListNode;
     reliableSequenceNumber  :enet_uint16;
     unreliableSequenceNumber:enet_uint16;
@@ -457,7 +466,7 @@ type
   end;
 
   pENetIncomingCommand = ^ENetIncomingCommand;
-  ENetIncomingCommand = {$IFDEF PACK} packed {$ENDIF} record
+  ENetIncomingCommand = record
     incomingCommandList     : ENetListNode;
     reliableSequenceNumber  :enet_uint16;
     unreliableSequenceNumber:enet_uint16;
@@ -470,7 +479,7 @@ type
 
 // enet.h <-----
     pENetChannel = ^ENetChannel;
-    ENetChannel = {$IFDEF PACK} packed {$ENDIF} record
+    ENetChannel = record
       outgoingReliableSequenceNumber    :enet_uint16;
       outgoingUnreliableSequenceNumber  :enet_uint16;
       usedReliableWindows               :enet_uint16;
@@ -491,7 +500,7 @@ type
  *)
   pENetHost = ^ENetHost;
   pENetPeer = ^ENetPeer;
-  ENetPeer = {$IFDEF PACK} packed {$ENDIF} record
+  ENetPeer = record
    dispatchList     : ENetListNode;
    host             : pENetHost;
    outgoingPeerID   :enet_uint16;
@@ -577,7 +586,7 @@ type
   ENetSocket = TSocket;   // SOCKET = UINT_PTR
 
   pENetBuffer = ^ENetBuffer;
-  ENetBuffer = {$IFDEF PACK} packed {$ENDIF} record
+  ENetBuffer = record
     dataLength : enet_uint32;
     data : pointer;
   end;
@@ -599,7 +608,9 @@ type
      destroy : ENET_CALLBACK_Destroy;
   end;
 
-  ENetHost = {$IFDEF PACK} packed {$ENDIF} record
+{$push}
+{$Align 4}
+  ENetHost = record
    socket : ENetSocket;
    address : ENetAddress;                     (**< Internet address of the host *)
    incomingBandwidth : enet_uint32;           (**< downstream bandwidth of the host *)
@@ -638,6 +649,7 @@ type
    maximumPacketSize : enet_size_t;           (**< the maximum allowable packet size that may be sent or received on a peer *)
    maximumWaitingData : enet_size_t;          (**< the maximum aggregate amount of buffer space a peer may use waiting for packets to be delivered *)
   end;
+{$pop}
 
 (**
  * An ENet event as returned by enet_host_service().
@@ -646,7 +658,7 @@ type
  *)
 
   pENetEvent = ^ENetEvent;
-  ENetEvent = {$IFDEF PACK} packed {$ENDIF} record
+  ENetEvent = record
    EventType : integer;     // ENetEventType   (**< type of the event *)
    peer : pENetPeer;      (**< peer that generated a connect, disconnect or receive event *)
    channelID :enet_uint8; (**< channel on the peer that generated the event, if appropriate *)

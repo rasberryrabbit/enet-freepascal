@@ -17,10 +17,11 @@ unit enet_socket;
 
 interface
 
-uses enet_consts , Sockets,
-  {$ifdef MSWINDOWS}
+uses enet_consts,
+  {$ifdef WINDOWS}
   WinSock2
   {$else}
+  Sockets,
   BaseUnix,
   Unix
   {$endif}
@@ -92,7 +93,7 @@ implementation
 
 uses
   sysutils
-  {$ifdef MSWINDOWS}
+  {$ifdef WINDOWS}
   ,mmsystem
   {$else}
   ,netdb
@@ -100,7 +101,7 @@ uses
   {$endif}
   ;
 
-{$ifndef MSWINDOWS}
+{$ifndef WINDOWS}
 const
   EINTR = 4;
   EWOULDBLOCK = 11;
@@ -110,28 +111,28 @@ var
   // to do : cause this value, only one enet used in one executable.
   timeBase : enet_uint32 =0;
   versionRequested  : WORD;
-  {$ifdef MSWINDOWS}
+  {$ifdef WINDOWS}
   wsaData : TWSAData;
   {$endif}
 
 procedure ENET_SOCKETSET_EMPTY(var sockset:TFDSet);
 begin
-  {$ifdef MSWINDOWS}FD_ZERO{$else}fpFD_ZERO{$endif}  (sockset);
+  {$ifdef WINDOWS}FD_ZERO{$else}fpFD_ZERO{$endif}  (sockset);
 end;
 
 procedure ENET_SOCKETSET_ADD(var sockset:TFDSet; socket:TSocket);
 begin
-  {$ifdef MSWINDOWS}FD_SET{$else}fpFD_SET{$endif} (socket, sockset);
+  {$ifdef WINDOWS}FD_SET{$else}fpFD_SET{$endif} (socket, sockset);
 end;
 
 procedure ENET_SOCKETSET_REMOVE(var sockset:TFDSet; socket:TSocket);
 begin
-  {$ifdef MSWINDOWS}FD_CLR{$else}fpFD_CLR{$endif} (socket, sockset);
+  {$ifdef WINDOWS}FD_CLR{$else}fpFD_CLR{$endif} (socket, sockset);
 end;
 
 function ENET_SOCKETSET_CHECK(var sockset:TFDSet; socket:TSocket):boolean;
 begin
-  result := {$ifdef MSWINDOWS}FD_ISSET{$else}0<>fpFD_ISSET{$endif} (socket, sockset);
+  result := {$ifdef WINDOWS}FD_ISSET{$else}0<>fpFD_ISSET{$endif} (socket, sockset);
 end;
 
 function ENET_HOST_TO_NET_16(value:word):word;
@@ -155,13 +156,13 @@ begin
 end;
 
 function enet_initialize:integer;
-{$ifdef MSWINDOWS}
+{$ifdef WINDOWS}
 var
   versionRequested  : WORD;
   wsaData : TWSAData;
 {$endif}
 begin
-  {$ifdef MSWINDOWS}
+  {$ifdef WINDOWS}
     versionRequested := $0101;
 
 
@@ -184,7 +185,7 @@ end;
 
 procedure enet_deinitialize;
 begin
-  {$ifdef MSWINDOWS}
+  {$ifdef WINDOWS}
     timeEndPeriod (1);
 
     WSACleanup ();
@@ -192,12 +193,12 @@ begin
 end;
 
 function enet_time_get:enet_uint32;
-{$ifndef MSWINDOWS}
+{$ifndef WINDOWS}
 var
   tv : TTimeVal;
 {$endif}
 begin
-  {$ifdef MSWINDOWS}
+  {$ifdef WINDOWS}
     Result := enet_uint32(timeGetTime - timeBase);
   {$else}
     fpgettimeofday(@tv,nil);
@@ -207,12 +208,12 @@ end;
 
 
 procedure enet_time_set (newTimeBase : enet_uint32);
-{$ifndef MSWINDOWS}
+{$ifndef WINDOWS}
 var
   tv : TTimeVal;
 {$endif}
 begin
-  {$ifdef MSWINDOWS}
+  {$ifdef WINDOWS}
     timeBase := enet_uint32( timeGetTime - newTimeBase);
   {$else}
     fpgettimeofday(@tv,nil);
@@ -222,10 +223,10 @@ end;
 
 function enet_address_set_host (address : pENetAddress; name : pchar):integer;
 var
-  hostEntry : {$ifdef MSWINDOWS}PHostEnt{$else}THostEntry{$endif};
+  hostEntry : {$ifdef WINDOWS}PHostEnt{$else}THostEntry{$endif};
   host : longword;
 begin
-    {$ifdef MSWINDOWS}
+    {$ifdef WINDOWS}
     hostEntry :=gethostbyname (name);
     if (hostEntry = nil) or
         (hostEntry ^. h_addrtype <> AF_INET) then
@@ -243,7 +244,7 @@ begin
     {$endif}
         result := 0; exit;
     end;
-    {$ifdef MSWINDOWS}
+    {$ifdef WINDOWS}
     address ^. host := (penet_uint32(hostEntry^.h_addr_list^))^;
     {$else}
     address ^. host := enet_uint32(htonl(hostEntry.Addr.s_addr));
@@ -256,7 +257,7 @@ var
   addr : pchar;
   addrLen : SizeInt;
 begin
-    {$ifdef MSWINDOWS}
+    {$ifdef WINDOWS}
     addr :=inet_ntoa (pInAddr(@address ^. host)^);
     {$else}
     addr := PAnsiChar(HostAddrToStr(in_addr(NToHl(address^.host))));
@@ -276,13 +277,13 @@ end;
 function enet_address_get_host (address : pENetAddress; name : pchar; nameLength : enet_size_t):integer;
 var
   inadd : TInAddr;
-  hostEntry : {$ifdef MSWINDOWS}PHostEnt{$else}THostEntry{$endif};
+  hostEntry : {$ifdef WINDOWS}PHostEnt{$else}THostEntry{$endif};
   hostLen : SizeInt;
 begin
 
-    inadd.s_addr :={$ifndef MSWINDOWS}NToHl{$endif}(address ^. host);
+    inadd.s_addr :={$ifndef WINDOWS}NToHl{$endif}(address ^. host);
 
-    {$ifdef MSWINDOWS}
+    {$ifdef WINDOWS}
     hostEntry :=gethostbyaddr (@inadd, sizeof (TInAddr), AF_INET);
     if (hostEntry = nil) then
     {$else}
@@ -293,10 +294,10 @@ begin
       end
       else
       begin
-         hostLen := {$ifdef MSWINDOWS}strlen (hostEntry ^. h_name){$else}Length(hostEntry.Name){$endif};
+         hostLen := {$ifdef WINDOWS}strlen (hostEntry ^. h_name){$else}Length(hostEntry.Name){$endif};
          if (hostLen >= nameLength) then
            begin Result:=-1; exit; end;
-         system.Move(hostEntry {$ifdef MSWINDOWS} ^. h_name^ {$else}.Name[1]{$endif}, name^, hostLen + 1);
+         system.Move(hostEntry {$ifdef WINDOWS} ^. h_name^ {$else}.Name[1]{$endif}, name^, hostLen + 1);
       end;
 
     result :=0;
@@ -322,10 +323,10 @@ begin
        sin.sin_addr.s_addr := INADDR_ANY;
     end;
 
-    retvalue := fpbind (socket,
+    retvalue := {$ifdef WINDOWS}bind{$else}fpbind{$endif} (socket,
                  @sin,
                  sizeof (SOCKADDR_IN));
-    if retvalue = {$ifdef MSWINDOWS}SOCKET_ERROR{$else}-1{$endif} then
+    if retvalue = {$ifdef WINDOWS}SOCKET_ERROR{$else}-1{$endif} then
       result := -1
       else result := 0;
 end;
@@ -333,11 +334,11 @@ end;
 function enet_socket_get_address (socket : ENetSocket; address : pENetAddress):integer;
 var
   sin : sockaddr_in;
-  sinLength : {$ifdef MSWINDOWS}Integer{$else}TSocklen{$endif};
+  sinLength : {$ifdef WINDOWS}Integer{$else}TSocklen{$endif};
 begin
     sinLength := sizeof (sockaddr_in);
 
-    if ({$ifdef MSWINDOWS}getsockname{$else}fpgetsockname{$endif} (socket,{$ifndef MSWINDOWS}@{$endif}sin, {$ifndef MSWINDOWS}@{$endif} sinLength) = -1) then
+    if ({$ifdef WINDOWS}getsockname{$else}fpgetsockname{$endif} (socket,{$ifndef WINDOWS}@{$endif}sin, {$ifndef WINDOWS}@{$endif} sinLength) = -1) then
       begin Result:=-1; exit; end;
 
     address ^. host := enet_uint32(sin.sin_addr.s_addr);
@@ -353,8 +354,8 @@ begin
   if backlog < 0 then
     backlogparam := SOMAXCONN
     else backlogparam := backlog;
-  retvalue := fplisten (socket, backlogparam);
-  if retvalue = {$ifdef MSWINDOWS}SOCKET_ERROR{$else}-1{$endif} then
+  retvalue := {$ifdef WINDOWS}listen{$else}fplisten{$endif} (socket, backlogparam);
+  if retvalue = {$ifdef WINDOWS}SOCKET_ERROR{$else}-1{$endif} then
     result := -1
     else result := 0;
 end;
@@ -366,14 +367,14 @@ begin
   if Socktype = ENET_SOCKET_TYPE_DATAGRAM then
     iSocktype := SOCK_DGRAM
     else iSocktype := SOCK_STREAM;
-  result := fpsocket (PF_INET, iSocktype, 0);
+  result := {$ifdef WINDOWS}socket{$else}fpsocket{$endif} (PF_INET, iSocktype, 0);
 end;
 
 function enet_socket_set_option (socket : ENetSocket; option : (*ENetSocketOption*)integer; value : integer):integer;
 var
   iResult : integer;
   nonBlocking : Longword;
-{$ifndef MSWINDOWS}
+{$ifndef WINDOWS}
   timeval : TTimeval;
 {$endif}
 begin
@@ -383,7 +384,7 @@ begin
         ENET_SOCKOPT_NONBLOCK:
         begin
             nonBlocking := Longword(value);
-            {$ifdef MSWINDOWS}
+            {$ifdef WINDOWS}
             iResult := ioctlsocket (socket, LongInt(FIONBIO), nonBlocking);
             {$else}
               {$ifdef HAS_FCNTL}
@@ -398,45 +399,45 @@ begin
         end;
 
         ENET_SOCKOPT_BROADCAST:
-            iResult := fpsetsockopt (socket, SOL_SOCKET, SO_BROADCAST, @ value, sizeof (integer));
+            iResult := {$ifdef WINDOWS}setsockopt{$else}fpsetsockopt{$endif} (socket, SOL_SOCKET, SO_BROADCAST, @ value, sizeof (integer));
 
         ENET_SOCKOPT_REUSEADDR:
-            iResult := fpsetsockopt (socket, SOL_SOCKET, SO_REUSEADDR, @ value, sizeof (integer));
+            iResult := {$ifdef WINDOWS}setsockopt{$else}fpsetsockopt{$endif} (socket, SOL_SOCKET, SO_REUSEADDR, @ value, sizeof (integer));
 
         ENET_SOCKOPT_RCVBUF:
-            iResult := fpsetsockopt (socket, SOL_SOCKET, SO_RCVBUF, @ value, sizeof (integer));
+            iResult := {$ifdef WINDOWS}setsockopt{$else}fpsetsockopt{$endif} (socket, SOL_SOCKET, SO_RCVBUF, @ value, sizeof (integer));
 
         ENET_SOCKOPT_SNDBUF:
-            iResult := fpsetsockopt (socket, SOL_SOCKET, SO_SNDBUF, @ value, sizeof (integer));
+            iResult := {$ifdef WINDOWS}setsockopt{$else}fpsetsockopt{$endif} (socket, SOL_SOCKET, SO_SNDBUF, @ value, sizeof (integer));
 
         ENET_SOCKOPT_RCVTIMEO:
             begin
-            {$ifndef MSWINDOWS}
+            {$ifndef WINDOWS}
             timeVal.tv_sec := value div 1000;
             timeVal.tv_usec := (value mod 1000) * 1000;
             {$endif}
-            iResult := fpsetsockopt (socket, SOL_SOCKET, SO_RCVTIMEO,
-                                    @ {$ifndef MSWINDOWS} timeVal {$else} value {$endif} ,
-                                    sizeof( {$ifndef MSWINDOWS} TTimeVal {$else}integer{$endif} )
+            iResult := {$ifdef WINDOWS}setsockopt{$else}fpsetsockopt{$endif} (socket, SOL_SOCKET, SO_RCVTIMEO,
+                                    @ {$ifndef WINDOWS} timeVal {$else} value {$endif} ,
+                                    sizeof( {$ifndef WINDOWS} TTimeVal {$else}integer{$endif} )
                                     );
             end;
 
         ENET_SOCKOPT_SNDTIMEO:
             begin
-            {$ifndef MSWINDOWS}
+            {$ifndef WINDOWS}
             timeVal.tv_sec := value div 1000;
             timeVal.tv_usec := (value mod 1000) * 1000;
             {$endif}
-            iResult := fpsetsockopt (socket, SOL_SOCKET, SO_SNDTIMEO,
-                       @{$ifndef MSWINDOWS}timeval {$else}value {$endif} ,
-                       sizeof ( {$ifndef MSWINDOWS} TTimeVal {$else} integer{$endif} )
+            iResult := {$ifdef WINDOWS}setsockopt{$else}fpsetsockopt{$endif} (socket, SOL_SOCKET, SO_SNDTIMEO,
+                       @{$ifndef WINDOWS}timeval {$else}value {$endif} ,
+                       sizeof ( {$ifndef WINDOWS} TTimeVal {$else} integer{$endif} )
                        );
             end;
         ENET_SOCKOPT_NODELAY:
-            iResult := fpsetsockopt (socket, IPPROTO_TCP, TCP_NODELAY, @ value, sizeof (integer));
+            iResult := {$ifdef WINDOWS}setsockopt{$else}fpsetsockopt{$endif} (socket, IPPROTO_TCP, TCP_NODELAY, @ value, sizeof (integer));
         else ;
     end;
-    if iResult = {$ifdef MSWINDOWS}SOCKET_ERROR{$else}-1{$endif} then
+    if iResult = {$ifdef WINDOWS}SOCKET_ERROR{$else}-1{$endif} then
       result := -1
              else result := 0;
 end;
@@ -444,25 +445,25 @@ end;
 function enet_socket_get_option (socket:ENetSocket; option: integer (* ENetSocketOption *); value:Integer):integer;
 var
   iResult : Integer;
-  len : {$ifdef MSWINDOWS}Integer{$else}TSocklen{$endif};
+  len : {$ifdef WINDOWS}Integer{$else}TSocklen{$endif};
 begin
-    iResult := {$ifdef MSWINDOWS}SOCKET_ERROR{$else}-1{$endif};
+    iResult := {$ifdef WINDOWS}SOCKET_ERROR{$else}-1{$endif};
     case option of
     ENET_SOCKOPT_ERROR:
       begin
             len := sizeof(integer);
-            IResult := {$ifdef MSWINDOWS}getsockopt{$else}fpgetsockopt{$endif} (socket, SOL_SOCKET, SO_ERROR, {$ifndef MSWINDOWS}@{$endif}value,{$ifndef MSWINDOWS}@{$endif}len);
+            IResult := {$ifdef WINDOWS}getsockopt{$else}fpgetsockopt{$endif} (socket, SOL_SOCKET, SO_ERROR, {$ifndef WINDOWS}@{$endif}value,{$ifndef WINDOWS}@{$endif}len);
       end;
     else ;
     end;
-    if iResult={$ifdef MSWINDOWS}SOCKET_ERROR{$else}-1{$endif} then
+    if iResult={$ifdef WINDOWS}SOCKET_ERROR{$else}-1{$endif} then
       Result:=-1
       else
         Result:=0;
 end;
 
 function enet_socket_connect ( socket : ENetSocket;address :  pENetAddress):integer;
-{$ifndef MSWINDOWS}
+{$ifndef WINDOWS}
 const
   EINPROGRESS = 36;
 {$endif}
@@ -476,8 +477,8 @@ begin
     sin.sin_port :=ENET_HOST_TO_NET_16 (address ^. port);
     sin.sin_addr.s_addr := address ^. host;
 
-    retvalue := fpconnect (socket, @ sin, sizeof (sockaddr_in));
-    {$ifdef MSWINDOWS}
+    retvalue := {$ifdef WINDOWS}connect{$else}fpconnect{$endif} (socket, @ sin, sizeof (sockaddr_in));
+    {$ifdef WINDOWS}
     if (retvalue = SOCKET_ERROR) and (WSAGetLastError <> WSAEWOULDBLOCK) then
        Result := -1
        else
@@ -497,8 +498,8 @@ var
   sresult : TSocket;
   sin : sockaddr_in;
   sinLength : integer;
-  p1 : Sockets.PSockAddr;
-  p2 : {$ifdef MSWINDOWS}PInteger{$else}pSocklen{$endif};
+  p1 : PSockAddr;
+  p2 : {$ifdef WINDOWS}PInteger{$else}pSocklen{$endif};
 begin
     sinLength :=sizeof (sockaddr_in);
 
@@ -508,11 +509,11 @@ begin
       p1 := @sin;
       p2 := @sinLength;
     end;
-    sresult := fpaccept (socket,
+    sresult := {$ifdef WINDOWS}accept{$else}fpaccept{$endif} (socket,
                      p1,
                      p2);
 
-    {$ifdef MSWINDOWS}
+    {$ifdef WINDOWS}
     if (sresult = INVALID_SOCKET) then
     {$else}
     if sresult = -1 then
@@ -530,8 +531,8 @@ end;
 
 function enet_socket_shutdown (socket:ENetSocket; how : Integer { ENetSocketShutdown } ):Integer;
 begin
-    Result := fpshutdown(socket,how);
-    {$ifdef MSWINDOWS}
+    Result := {$ifdef WINDOWS}shutdown{$else}fpshutdown{$endif}(socket,how);
+    {$ifdef WINDOWS}
     if Result = SOCKET_ERROR then
        Result := -1
        else Result := 0;
@@ -551,7 +552,7 @@ function enet_socket_send (socket : ENetSocket;
 var
   sin : sockaddr_in;
   sentLength : longword;
-{$ifdef MSWINDOWS}
+{$ifdef WINDOWS}
   ipto : PSockAddr;
   iptolen : integer;
 {$else}
@@ -568,7 +569,7 @@ begin
         sin.sin_addr.s_addr :=address ^. host;
     end;
 
-    {$ifdef MSWINDOWS}
+    {$ifdef WINDOWS}
     ipto := nil;
     iptolen := 0;
     if address <> nil then begin
@@ -576,7 +577,7 @@ begin
       iptolen := sizeof(sockaddr_in);
     end;
     if (wsaSendTo (socket,
-                   Pointer(buffers),
+                   LPWSABUF(buffers),
                    longword(bufferCount),
                    sentLength,
                    0,
@@ -640,7 +641,7 @@ function enet_socket_receive (socket : ENetSocket;
 var
   recvLength : longword;
   sin : SOCKADDR_IN;
-  {$ifdef MSWINDOWS}
+  {$ifdef WINDOWS}
   sinLength : integer;
   flags : Longword;
   ipfrom : PSockAddr;
@@ -649,7 +650,7 @@ var
   slen : TSocklen;
   {$endif}
 begin
-    {$ifdef MSWINDOWS}
+    {$ifdef WINDOWS}
     sinLength :=sizeof (sockaddr_in);
     flags :=0;
 
@@ -718,7 +719,7 @@ begin
     timeVal.tv_sec := timeout div 1000;
     timeVal.tv_usec := (timeout mod 1000) * 1000;
 
-    result := {$ifdef MSWINDOWS}select{$else}fpSelect{$endif} (maxSocket + 1, readSet, writeSet, nil, @ timeVal);
+    result := {$ifdef WINDOWS}select{$else}fpSelect{$endif} (maxSocket + 1, readSet, writeSet, nil, @ timeVal);
 end;
 
 function enet_socket_wait (socket : ENetSocket; condition : penet_uint32; timeout : enet_uint32):integer;
@@ -771,20 +772,20 @@ begin
     timeVal.tv_sec :=timeout div 1000;
     timeVal.tv_usec :=(timeout mod 1000) * 1000;
 
-    {$ifdef MSWINDOWS}FD_ZERO{$else}fpFD_ZERO{$endif} (readSet);
-    {$ifdef MSWINDOWS}FD_ZERO{$else}fpFD_ZERO{$endif} (writeSet);
+    {$ifdef WINDOWS}FD_ZERO{$else}fpFD_ZERO{$endif} (readSet);
+    {$ifdef WINDOWS}FD_ZERO{$else}fpFD_ZERO{$endif} (writeSet);
 
     if (condition^ and ENET_SOCKET_WAIT_SEND)<>0 then
-      {$ifdef MSWINDOWS}FD_SET{$else}fpFD_SET{$endif} (socket, writeSet);
+      {$ifdef WINDOWS}FD_SET{$else}fpFD_SET{$endif} (socket, writeSet);
 
     if (condition^ and ENET_SOCKET_WAIT_RECEIVE)<>0 then
-      {$ifdef MSWINDOWS}FD_SET{$else}fpFD_SET{$endif} (socket, readSet);
+      {$ifdef WINDOWS}FD_SET{$else}fpFD_SET{$endif} (socket, readSet);
 
-    selectCount := {$ifdef MSWINDOWS}select{$else}fpSelect{$endif} (socket + 1, @readSet, @writeSet, nil, @timeVal);
+    selectCount := {$ifdef WINDOWS}select{$else}fpSelect{$endif} (socket + 1, @readSet, @writeSet, nil, @timeVal);
 
     if (selectCount < 0) then
     begin
-        {$ifndef MSWINDOWS}
+        {$ifndef WINDOWS}
         if ((errno = EINTR) and ( condition^ and ENET_SOCKET_WAIT_INTERRUPT <>0)) then
         begin
             condition^ := ENET_SOCKET_WAIT_INTERRUPT;
@@ -800,10 +801,10 @@ begin
     if (selectCount = 0) then
       begin result := 0; exit; end;
 
-    if ({$ifdef MSWINDOWS}FD_ISSET{$else}0<>fpFD_ISSET{$endif} (socket, writeSet)) then
+    if ({$ifdef WINDOWS}FD_ISSET{$else}0<>fpFD_ISSET{$endif} (socket, writeSet)) then
       condition^  := condition^ or ENET_SOCKET_WAIT_SEND;
 
-    if ({$ifdef MSWINDOWS}FD_ISSET{$else}0<>fpFD_ISSET{$endif} (socket, readSet)) then
+    if ({$ifdef WINDOWS}FD_ISSET{$else}0<>fpFD_ISSET{$endif} (socket, readSet)) then
       condition^ := condition^ or ENET_SOCKET_WAIT_RECEIVE;
 {$endif}
     result := 0;
@@ -811,7 +812,7 @@ end;
 
 function enet_host_random_seed: enet_uint32;
 begin
-    {$ifdef MSWINDOWS}
+    {$ifdef WINDOWS}
     Result := timeGetTime;
     {$else}
     Result := GetTickCount;
