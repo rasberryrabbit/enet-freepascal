@@ -313,7 +313,7 @@ type
 // -----> list.h
 
 {$push}
-{$align 1}
+{$PackRecords 1}
 // protocol.h <-----
   pENetProtocolHeader = ^ENetProtocolHeader;
   ENetProtocolHeader = record
@@ -585,6 +585,12 @@ type
 
   ENetSocket = TSocket;   // SOCKET = UINT_PTR
 
+{$push}
+{$ifdef CPUX86_64}
+{$PackRecords 8}
+{$else}
+{$PackRecords 4}
+{$endif}
   pENetBuffer = ^ENetBuffer;
   ENetBuffer = record
     dataLength : enet_uint32;
@@ -608,8 +614,6 @@ type
      destroy : ENET_CALLBACK_Destroy;
   end;
 
-{$push}
-{$Align 4}
   ENetHost = record
    socket : ENetSocket;
    address : ENetAddress;                     (**< Internet address of the host *)
