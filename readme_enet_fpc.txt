@@ -3,12 +3,11 @@ enet 1.3.12 to Freepascal
 -------------------------
 
 UDP C library ENet 1.3.12 to freepascal source translation.
-And I add simple class version freepascal unit code.
+I also added a simple class wrapper unit for freepascal.
 
-tested in window 32, also support linux(simple test on linux mint x86-64).
-If you get any error in linux, there is one unit to modify for work.
+Tested on windows 32 bit, also supports linux (simple test on linux mint x86-64).
 
-It support only IPv4, not IPv6.
+It supports only IPv4, IPv6 is unsupported.
 
 Special thanks to Lee Salzman.
 
@@ -28,7 +27,7 @@ enet_peer.pas
 enet_protocol.pas
 enet_socket.pas (1)
 
-(1) if you using it to other os environment, you should modify this source unit. You will make changes to time and socket functions.
+(1) If you are using it to other oses/environments, you should modify this source unit. You will need to change the time and socket functions.
 
 ----------
 changes
