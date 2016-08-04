@@ -1,7 +1,7 @@
 # enet-freepascal
-Automatically exported from code.google.com/p/enet-freepascal
+UDP Communiation Library ENet C Library to Free Pascal Source code Translation.
 
-convert C UDP communication library enet(http://enet.bespin.org) to Pascal.
+Based on ENet 1.3.12.
+Works on Linux.
 
-enet 1.3.12 to pascal code, and works in linux.
-
+More about ENet UDP Library: http://enet.bespin.org/
