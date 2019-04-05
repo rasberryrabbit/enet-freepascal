@@ -13,6 +13,7 @@ unit enet_protocol;
 *)
 
 {$GOTO ON}
+{$R-}
 
 interface
 
