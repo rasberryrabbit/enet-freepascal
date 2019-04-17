@@ -4,12 +4,12 @@
     <PathDelim Value="\"/>
     <Version Value="12"/>
     <BuildModes Active="Default"/>
-    <Units Count="39">
+    <Units Count="41">
       <Unit0>
         <Filename Value="enetpas_server.lpr"/>
         <IsPartOfProject Value="True"/>
         <CursorPos Y="20"/>
-        <UsageCount Value="84"/>
+        <UsageCount Value="85"/>
       </Unit0>
       <Unit1>
         <Filename Value="enetpas_server_main.pas"/>
@@ -18,7 +18,7 @@
         <HasResources Value="True"/>
         <ResourceBaseClass Value="Form"/>
         <CursorPos X="31" Y="9"/>
-        <UsageCount Value="84"/>
+        <UsageCount Value="85"/>
         <Loaded Value="True"/>
         <LoadedDesigner Value="True"/>
       </Unit1>
@@ -27,7 +27,7 @@
         <IsPartOfProject Value="True"/>
         <EditorIndex Value="-1"/>
         <CursorPos X="66" Y="104"/>
-        <UsageCount Value="30"/>
+        <UsageCount Value="31"/>
       </Unit2>
       <Unit3>
         <Filename Value="enet-delphi\enet.pas"/>
@@ -205,38 +205,38 @@
         <Filename Value="..\uenetclass.pas"/>
         <UnitName Value="uENetClass"/>
         <EditorIndex Value="1"/>
-        <TopLine Value="7"/>
-        <CursorPos X="10" Y="39"/>
+        <TopLine Value="22"/>
+        <CursorPos X="31" Y="38"/>
         <UsageCount Value="11"/>
         <Loaded Value="True"/>
       </Unit33>
       <Unit34>
         <Filename Value="..\enet_host.pas"/>
-        <EditorIndex Value="-1"/>
-        <CursorPos X="18" Y="28"/>
+        <IsVisibleTab Value="True"/>
+        <EditorIndex Value="2"/>
+        <TopLine Value="47"/>
+        <CursorPos X="36" Y="58"/>
         <UsageCount Value="10"/>
+        <Loaded Value="True"/>
       </Unit34>
       <Unit35>
         <Filename Value="..\enet_socket.pas"/>
         <EditorIndex Value="-1"/>
-        <TopLine Value="85"/>
-        <CursorPos X="62" Y="596"/>
         <UsageCount Value="10"/>
       </Unit35>
       <Unit36>
         <Filename Value="..\enet_protocol.pas"/>
-        <IsVisibleTab Value="True"/>
-        <EditorIndex Value="2"/>
-        <TopLine Value="1694"/>
-        <CursorPos X="32" Y="1599"/>
+        <EditorIndex Value="3"/>
+        <TopLine Value="333"/>
+        <CursorPos X="53" Y="346"/>
         <UsageCount Value="11"/>
         <Loaded Value="True"/>
       </Unit36>
       <Unit37>
         <Filename Value="..\enet_consts.pas"/>
-        <EditorIndex Value="3"/>
-        <TopLine Value="130"/>
-        <CursorPos X="59" Y="142"/>
+        <EditorIndex Value="4"/>
+        <TopLine Value="542"/>
+        <CursorPos X="70" Y="493"/>
         <UsageCount Value="10"/>
         <Loaded Value="True"/>
       </Unit37>
@@ -247,75 +247,138 @@
         <CursorPos X="10" Y="1189"/>
         <UsageCount Value="10"/>
       </Unit38>
+      <Unit39>
+        <Filename Value="..\enet_peer.pas"/>
+        <EditorIndex Value="-1"/>
+        <UsageCount Value="10"/>
+      </Unit39>
+      <Unit40>
+        <Filename Value="..\enet_packet.pas"/>
+        <EditorIndex Value="-1"/>
+        <UsageCount Value="10"/>
+      </Unit40>
     </Units>
-    <JumpHistory Count="17" HistoryIndex="16">
+    <JumpHistory Count="30" HistoryIndex="29">
       <Position1>
-        <Filename Value="enetpas_server_main.pas"/>
-        <Caret Line="9" Column="31"/>
+        <Filename Value="..\enet_host.pas"/>
+        <Caret Line="392" Column="51" TopLine="365"/>
       </Position1>
       <Position2>
-        <Filename Value="..\uenetclass.pas"/>
-        <Caret Line="38" Column="11" TopLine="28"/>
+        <Filename Value="..\enet_host.pas"/>
+        <Caret Line="412" Column="59" TopLine="385"/>
       </Position2>
       <Position3>
-        <Filename Value="..\uenetclass.pas"/>
-        <Caret Line="39" Column="10" TopLine="28"/>
+        <Filename Value="..\enet_host.pas"/>
+        <Caret Line="454" Column="49" TopLine="427"/>
       </Position3>
       <Position4>
-        <Filename Value="..\enet_protocol.pas"/>
-        <Caret Line="16" Column="5"/>
+        <Filename Value="..\enet_host.pas"/>
+        <Caret Line="490" Column="62" TopLine="463"/>
       </Position4>
       <Position5>
-        <Filename Value="..\enet_protocol.pas"/>
-        <Caret Line="1354" Column="28" TopLine="1341"/>
+        <Filename Value="..\enet_host.pas"/>
+        <Caret Line="511" Column="58" TopLine="484"/>
       </Position5>
       <Position6>
-        <Filename Value="..\enet_protocol.pas"/>
-        <Caret Line="1361" Column="59" TopLine="1344"/>
+        <Filename Value="..\enet_host.pas"/>
+        <Caret Line="140" Column="57" TopLine="118"/>
       </Position6>
       <Position7>
-        <Filename Value="..\enet_protocol.pas"/>
-        <Caret Line="1402" TopLine="1395"/>
+        <Filename Value="..\enet_host.pas"/>
+        <Caret Line="175" Column="62" TopLine="147"/>
       </Position7>
       <Position8>
-        <Filename Value="..\enet_protocol.pas"/>
-        <Caret Line="1561" Column="7" TopLine="1547"/>
+        <Filename Value="..\enet_host.pas"/>
+        <Caret Line="212" Column="62" TopLine="184"/>
       </Position8>
       <Position9>
-        <Filename Value="..\enet_protocol.pas"/>
-        <Caret Line="1362" Column="58" TopLine="1349"/>
+        <Filename Value="..\enet_host.pas"/>
+        <Caret Line="219" Column="60" TopLine="191"/>
       </Position9>
       <Position10>
-        <Filename Value="..\enet_protocol.pas"/>
-        <Caret Line="6" Column="43"/>
+        <Filename Value="..\enet_host.pas"/>
+        <Caret Line="298" Column="62" TopLine="270"/>
       </Position10>
       <Position11>
-        <Filename Value="..\enet_protocol.pas"/>
-        <Caret Line="287" Column="27" TopLine="260"/>
+        <Filename Value="..\enet_host.pas"/>
+        <Caret Line="392" Column="51" TopLine="365"/>
       </Position11>
       <Position12>
-        <Filename Value="..\enet_protocol.pas"/>
-        <Caret Line="53" Column="42" TopLine="43"/>
+        <Filename Value="..\enet_host.pas"/>
+        <Caret Line="412" Column="59" TopLine="385"/>
       </Position12>
       <Position13>
-        <Filename Value="..\enet_consts.pas"/>
-        <Caret Line="143" Column="39" TopLine="130"/>
+        <Filename Value="..\enet_host.pas"/>
+        <Caret Line="454" Column="49" TopLine="427"/>
       </Position13>
       <Position14>
-        <Filename Value="..\enet_protocol.pas"/>
-        <Caret Line="47" Column="52" TopLine="37"/>
+        <Filename Value="..\enet_host.pas"/>
+        <Caret Line="490" Column="62" TopLine="463"/>
       </Position14>
       <Position15>
-        <Filename Value="..\enet_protocol.pas"/>
+        <Filename Value="..\enet_host.pas"/>
+        <Caret Line="511" Column="58" TopLine="484"/>
       </Position15>
       <Position16>
-        <Filename Value="..\enet_protocol.pas"/>
-        <Caret Line="342" Column="60" TopLine="314"/>
+        <Filename Value="..\enet_host.pas"/>
+        <Caret Line="8" Column="50"/>
       </Position16>
       <Position17>
-        <Filename Value="..\enet_protocol.pas"/>
-        <Caret Line="1008" Column="115" TopLine="980"/>
+        <Filename Value="..\enet_host.pas"/>
+        <Caret Line="7" Column="63"/>
       </Position17>
+      <Position18>
+        <Filename Value="..\enet_host.pas"/>
+        <Caret Line="140" Column="61" TopLine="113"/>
+      </Position18>
+      <Position19>
+        <Filename Value="..\enet_host.pas"/>
+        <Caret Line="175" Column="62" TopLine="147"/>
+      </Position19>
+      <Position20>
+        <Filename Value="..\enet_host.pas"/>
+        <Caret Line="212" Column="62" TopLine="184"/>
+      </Position20>
+      <Position21>
+        <Filename Value="..\enet_host.pas"/>
+        <Caret Line="219" Column="60" TopLine="191"/>
+      </Position21>
+      <Position22>
+        <Filename Value="..\enet_host.pas"/>
+        <Caret Line="298" Column="62" TopLine="270"/>
+      </Position22>
+      <Position23>
+        <Filename Value="..\enet_host.pas"/>
+        <Caret Line="392" Column="51" TopLine="365"/>
+      </Position23>
+      <Position24>
+        <Filename Value="..\enet_host.pas"/>
+        <Caret Line="412" Column="59" TopLine="385"/>
+      </Position24>
+      <Position25>
+        <Filename Value="..\enet_host.pas"/>
+        <Caret Line="454" Column="49" TopLine="427"/>
+      </Position25>
+      <Position26>
+        <Filename Value="..\enet_host.pas"/>
+        <Caret Line="490" Column="62" TopLine="463"/>
+      </Position26>
+      <Position27>
+        <Filename Value="..\enet_host.pas"/>
+        <Caret Line="511" Column="58" TopLine="484"/>
+      </Position27>
+      <Position28>
+        <Filename Value="..\enet_host.pas"/>
+        <Caret Line="21" Column="18" TopLine="7"/>
+      </Position28>
+      <Position29>
+        <Filename Value="..\enet_host.pas"/>
+        <Caret Line="58" Column="36" TopLine="44"/>
+      </Position29>
+      <Position30>
+        <Filename Value="..\enet_protocol.pas"/>
+        <Caret Line="346" Column="53" TopLine="333"/>
+      </Position30>
     </JumpHistory>
     <RunParams>
       <FormatVersion Value="2"/>

@@ -490,7 +490,7 @@ type
       incomingUnreliableCommands        : ENetList;
     end;
 
-    ENetChannelArray = array[0..0] of ENetChannel;
+    ENetChannelArray = array[0..ENET_PROTOCOL_MAXIMUM_CHANNEL_COUNT-1] of ENetChannel;
     pENetChannelArray = ^ENetChannelArray;
 
 (**
@@ -563,7 +563,7 @@ type
    totalWaitingData  : enet_size_t;
   end;
 
-  ENetPeerArray = array[0..0] of ENetPeer;
+  ENetPeerArray = array[0..ENET_PROTOCOL_MAXIMUM_PEER_ID-1] of ENetPeer;
   pENetPeerArray = ^ENetPeerArray;
 
 (** An ENet host for communicating with peers.
