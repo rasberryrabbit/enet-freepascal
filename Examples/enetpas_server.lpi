@@ -65,7 +65,6 @@
     <CodeGeneration>
       <Checks>
         <RangeChecks Value="True"/>
-        <OverflowChecks Value="True"/>
       </Checks>
     </CodeGeneration>
     <Linking>
