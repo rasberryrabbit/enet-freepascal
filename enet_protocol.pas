@@ -13,7 +13,6 @@ unit enet_protocol;
 *)
 
 {$GOTO ON}
-{$R-}
 
 interface
 
@@ -1343,6 +1342,8 @@ begin
     result := -1;
 end;
 
+{$push}
+{$R-}
 procedure enet_protocol_send_acknowledgements (host : pENetHost; peer : pENetPeer);
 var
     command : pENetProtocol;
@@ -1688,6 +1689,7 @@ begin
 
     Result:=canPing;
 end;
+{$pop}
 
 function enet_protocol_send_outgoing_commands (host : pENetHost; event : pENetEvent; checkForTimeouts : integer):integer;
 var
