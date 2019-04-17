@@ -36,8 +36,8 @@ type
   penet_uint8  = pbyte;
   // for pointer access
   ppenet_uint8 = ^penet_uint8;
-  enet_uint8array = array[0..0] of enet_uint8;
-  penet_uint8array = ^enet_uint8array;
+  //enet_uint8array = array[0..0] of enet_uint8;
+  penet_uint8array = pchar; // ^enet_uint8array;
   enet_size_t = longword;
   ENetProtocolCommand = integer;
 
@@ -490,7 +490,7 @@ type
       incomingUnreliableCommands        : ENetList;
     end;
 
-    ENetChannelArray = array[0..ENET_PROTOCOL_MAXIMUM_CHANNEL_COUNT-1] of ENetChannel;
+    ENetChannelArray = array[0..ENET_PROTOCOL_MAXIMUM_CHANNEL_COUNT] of ENetChannel;
     pENetChannelArray = ^ENetChannelArray;
 
 (**
@@ -563,7 +563,7 @@ type
    totalWaitingData  : enet_size_t;
   end;
 
-  ENetPeerArray = array[0..ENET_PROTOCOL_MAXIMUM_PEER_ID-1] of ENetPeer;
+  ENetPeerArray = array[0..ENET_PROTOCOL_MAXIMUM_PEER_ID] of ENetPeer;
   pENetPeerArray = ^ENetPeerArray;
 
 (** An ENet host for communicating with peers.
@@ -693,6 +693,8 @@ type
 
 implementation
 
+{$push}
+{$R-}
 function ENET_TIME_LESS(a, b : longword):boolean;
 var
   c : enet_uint32;
@@ -727,6 +729,7 @@ begin
   if c >= ENET_TIME_OVERFLOW then result := b - a
      else result := c;
 end;
+{$pop}
 
 function ENET_MAX(x, y:longword):longword;
 begin

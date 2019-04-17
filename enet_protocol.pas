@@ -497,7 +497,7 @@ begin
     Inc(PAnsiChar(currentData^) , dataLength);
     if (dataLength > host ^. maximumPacketSize) or
        (currentData^ < host ^. receivedData) or
-       (currentData^ > @ penet_uint8array(host ^. receivedData)^[host ^. receivedDataLength]) then
+       (currentData^ > @ penet_uint8array(host ^. receivedData)[host ^. receivedDataLength]) then
        begin result := -1; exit; end;
 
     if (enet_peer_queue_incoming_command (peer, command, pchar(command) + sizeof (ENetProtocolSendReliable), dataLength, ENET_PACKET_FLAG_RELIABLE, 0) = nil) then
@@ -520,7 +520,7 @@ begin
     inc(PAnsiChar(currentData^) , dataLength);
     if (dataLength > host ^. maximumPacketSize) or
        (currentData^ < host ^. receivedData) or
-       (currentData^ > @ penet_uint8array(host ^. receivedData)^[host ^. receivedDataLength]) then
+       (currentData^ > @ penet_uint8array(host ^. receivedData)[host ^. receivedDataLength]) then
       begin result := -1; exit; end;
 
     unsequencedGroup := ENET_NET_TO_HOST_16 (command ^. sendUnsequenced.unsequencedGroup);
@@ -565,7 +565,7 @@ begin
     inc(PAnsiChar(currentData^), dataLength);
     if (dataLength > host ^. maximumPacketSize) or
        (currentData^ < host ^. receivedData) or
-       (currentData^ > @ penet_uint8array(host ^. receivedData)^[host ^. receivedDataLength]) then
+       (currentData^ > @ penet_uint8array(host ^. receivedData)[host ^. receivedDataLength]) then
       begin result := -1; exit; end;
 
     if (enet_peer_queue_incoming_command (peer, command, pchar(command) + sizeof (ENetProtocolSendUnreliable), dataLength, 0, 0) = nil) then
@@ -597,7 +597,7 @@ begin
     inc( currentData^ , fragmentLength);
     if (fragmentLength > host ^. maximumPacketSize) or
        (currentData^ < host ^. receivedData) or
-       (currentData^ > @ penet_uint8array(host ^. receivedData)^[host ^. receivedDataLength]) then
+       (currentData^ > @ penet_uint8array(host ^. receivedData)[host ^. receivedDataLength]) then
       begin result := -1; exit; end;
 
     channel := @ pENetChannelArray(peer ^. channels)^[command ^. header.channelID];
@@ -714,7 +714,7 @@ begin
     Inc(currentData^, fragmentLength);
     if (fragmentLength > host ^. maximumPacketSize) or
        (currentData^ < host ^. receivedData) or
-       (currentData^ > @ penet_uint8array(host ^. receivedData )^[host ^. receivedDataLength]) then
+       (currentData^ > @ penet_uint8array(host ^. receivedData )[host ^. receivedDataLength]) then
        begin
          Result:=-1; exit;
        end;
@@ -1133,7 +1133,7 @@ begin
 
    if (host ^. checksumfunc <> nil) then
    begin
-       checksum := penet_uint32 ( @ penet_uint8array(host ^. receivedData)^[headerSize - sizeof (enet_uint32)]);
+       checksum := penet_uint32 ( @ penet_uint8array(host ^. receivedData)[headerSize - sizeof (enet_uint32)]);
        desiredChecksum := checksum^;
 
        if peer<>nil then
@@ -1158,12 +1158,12 @@ begin
 
     currentData := penet_uint8(PAnsiChar(@host ^. receivedData[0]) + headerSize);
 
-    while PAnsiChar(currentData)< PAnsiChar(@ penet_uint8array(host ^. receivedData)^[host ^. receivedDataLength]) do
+    while PAnsiChar(currentData)< PAnsiChar(@ penet_uint8array(host ^. receivedData)[host ^. receivedDataLength]) do
     begin
 
        command := pENetProtocol (currentData);
 
-       if (PAnsiChar(currentData) + sizeof (ENetProtocolCommandHeader) > PAnsiChar(@ penet_uint8array(host ^. receivedData)^[host ^. receivedDataLength])) then
+       if (PAnsiChar(currentData) + sizeof (ENetProtocolCommandHeader) > PAnsiChar(@ penet_uint8array(host ^. receivedData)[host ^. receivedDataLength])) then
          break;
 
        commandNumber := command ^. header.command and ENET_PROTOCOL_COMMAND_MASK;
@@ -1171,7 +1171,7 @@ begin
          break;
 
        commandSize := commandSizes [commandNumber];
-       if (commandSize = 0) or (PAnsiChar(currentData) + commandSize > PAnsiChar(@ penet_uint8array(host ^. receivedData)^[host ^. receivedDataLength])) then
+       if (commandSize = 0) or (PAnsiChar(currentData) + commandSize > PAnsiChar(@ penet_uint8array(host ^. receivedData)[host ^. receivedDataLength])) then
          break;
 
        inc(PAnsiChar(currentData), commandSize);
