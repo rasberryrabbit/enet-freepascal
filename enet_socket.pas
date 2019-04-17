@@ -192,6 +192,8 @@ begin
   {$endif}
 end;
 
+{$push}
+{$R-}
 function enet_time_get:enet_uint32;
 {$ifndef WINDOWS}
 var
@@ -220,6 +222,7 @@ begin
     timeBase := tv.tv_sec * 1000 + tv.tv_usec div 1000 - newTimeBase;
   {$endif}
 end;
+{$pop}
 
 function enet_address_set_host (address : pENetAddress; name : pchar):integer;
 var

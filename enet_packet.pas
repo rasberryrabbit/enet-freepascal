@@ -120,6 +120,8 @@ var
   initializedCRC32 : integer = 0;
   crcTable : array[0..255] of enet_uint32;
 
+{$push}
+{$R-}
 function reflect_crc (val, bits :integer):enet_uint32;
 var
   bit : integer;
@@ -184,6 +186,7 @@ begin
 
     result := ENET_HOST_TO_NET_32 (not crc);
 end;
+{$pop}
 
 (** @} *)
 
