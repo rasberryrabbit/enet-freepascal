@@ -574,7 +574,8 @@ begin
     if (peer^. state = ENET_PEER_STATE_DISCONNECTING) or
         (peer^. state = ENET_PEER_STATE_DISCONNECTED) or
         (peer^. state = ENET_PEER_STATE_ACKNOWLEDGING_DISCONNECT) or
-        (peer^. state = ENET_PEER_STATE_ZOMBIE) then exit;
+        (peer^. state = ENET_PEER_STATE_ZOMBIE) then 
+      exit;
 
     enet_peer_reset_queues (peer);
 
