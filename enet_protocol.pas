@@ -1126,8 +1126,8 @@ begin
        if (originalSize <= 0) or (originalSize > sizeof (host ^. packetData [1]) - headerSize) then
          begin result := 0; exit; end;
 
-       system.Move (header^, host ^. packetData [1], headerSize);
-       host ^. receivedData := host ^. packetData [1];
+       system.Move (header^, host ^. packetData [1][0], headerSize);
+       host ^. receivedData := @ host ^. packetData [1][0];
        host ^. receivedDataLength := headerSize + originalSize;
    end;
 
@@ -1288,7 +1288,7 @@ begin
     while true do
     begin
 
-       buffer.data := @ host ^. packetData [0];
+       buffer.data := @ host ^. packetData [0][0];
        buffer.dataLength := sizeof (host ^. packetData [0]);
 
        receivedLength := enet_socket_receive (host ^. socket,
@@ -1302,7 +1302,7 @@ begin
        if (receivedLength = 0) then
          begin result :=0; exit; end;
 
-       host ^. receivedData := host ^. packetData [0];
+       host ^. receivedData := @host ^. packetData [0][0];
        host ^. receivedDataLength := receivedLength;
 
        Inc(host ^. totalReceivedData, receivedLength);
@@ -1794,7 +1794,7 @@ begin
             compressedSize := host ^. compressor.compress (host ^. compressor.context,
                                         @ host ^. buffers [1], host ^. bufferCount - 1,
                                         originalSize,
-                                        @ host ^. packetData [1],
+                                        @ host ^. packetData [1][0],
                                         originalSize);
             if (compressedSize > 0) and (compressedSize < originalSize) then
             begin
@@ -1819,7 +1819,7 @@ begin
 
         if (shouldCompress > 0) then
         begin
-            host ^. buffers [1].data := @host ^. packetData [1];
+            host ^. buffers [1].data := @host ^. packetData [1][0];
             host ^. buffers [1].dataLength := shouldCompress;
             host ^. bufferCount := 2;
         end;
