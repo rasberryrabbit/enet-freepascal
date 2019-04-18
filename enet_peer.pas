@@ -1045,7 +1045,7 @@ discardCommand:
     if (packet <> nil ) and (packet^. referenceCount = 0) then
       enet_packet_destroy (packet);
 
-    Result := @dummyCommand;
+    Result := @dummyCommand;  exit;
 
 notifyError:
     if (packet <> nil) and (packet^. referenceCount = 0) then
