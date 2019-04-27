@@ -137,10 +137,10 @@ begin
     enet_list_clear ( @ host ^. dispatchQueue);
 
     currentPeer := host ^. peers;
-    while PAnsiChar(currentPeer)< PAnsiChar(@ pENetPeerArray(host ^. peers)^[host ^. peerCount] ) do
+    while PChar(currentPeer)< PChar(@ pENetPeerArray(host ^. peers)^[host ^. peerCount] ) do
     begin
        currentPeer ^. host := host;
-       currentPeer ^. incomingPeerID := (PAnsiChar(currentPeer)- PAnsiChar(host ^. peers)) div sizeof(ENetPeer);
+       currentPeer ^. incomingPeerID := (PChar(currentPeer)- PChar(host ^. peers)) div sizeof(ENetPeer);
        currentPeer ^. outgoingSessionID := $0FF;
        currentPeer ^. incomingSessionID := $0FF;
        currentPeer ^. data := nil;
@@ -167,12 +167,13 @@ procedure enet_host_destroy (host : pENetHost);
 var
     currentPeer : pENetPeer;
 begin
-    if host=nil then exit;
+    if host=nil then
+        exit;
 
     enet_socket_destroy (host ^. socket);
 
     currentPeer := host ^. peers;
-    while PAnsiChar(currentPeer) < PAnsiChar(@ pENetPeerArray(host ^. peers)^[host ^. peerCount]) do
+    while PChar(currentPeer) < PChar(@ pENetPeerArray(host ^. peers)^[host ^. peerCount]) do
     begin
        enet_peer_reset (currentPeer);
        inc(currentPeer);
@@ -209,18 +210,19 @@ begin
       channelCount := ENET_PROTOCOL_MAXIMUM_CHANNEL_COUNT;
 
     currentPeer := host ^. peers;
-    while PAnsiChar(currentPeer) < PAnsiChar(@ pENetPeerArray(host ^. peers)^[host ^. peerCount]) do
+    while PChar(currentPeer) < PChar(@ pENetPeerArray(host ^. peers)^[host ^. peerCount]) do
     begin
        if (currentPeer ^. state = ENET_PEER_STATE_DISCONNECTED) then
          break;
        inc(currentPeer);
     end;
 
-    if PAnsiChar(currentPeer) >= PAnsiChar(@ pENetPeerArray(host ^. peers)^[host ^. peerCount]) then
+    if PChar(currentPeer) >= PChar(@ pENetPeerArray(host ^. peers)^[host ^. peerCount]) then
       begin result := nil; exit; end;
 
     currentPeer ^. channels := pENetChannel( enet_malloc (channelCount * sizeof (ENetChannel)) );
-    if (currentPeer ^. channels = nil) then begin
+    if (currentPeer ^. channels = nil) then
+    begin
        result:=nil; exit;
     end;
 
@@ -245,7 +247,7 @@ begin
       currentPeer ^. windowSize := ENET_PROTOCOL_MAXIMUM_WINDOW_SIZE;
 
     channel := currentPeer ^. channels;
-    while PAnsiChar(channel) < PAnsiChar(@ pENetChannelArray(currentPeer ^. channels)^[channelCount]) do
+    while PChar(channel) < PChar(@ pENetChannelArray(currentPeer ^. channels)^[channelCount]) do
     begin
         channel ^. outgoingReliableSequenceNumber := 0;
         channel ^. outgoingUnreliableSequenceNumber := 0;
@@ -295,7 +297,7 @@ label continuework;
 begin
 
     currentPeer := host ^. peers;
-    while PAnsiChar(currentPeer) < PAnsiChar(@ pENetPeerArray(host ^. peers)^[host ^. peerCount]) do
+    while PChar(currentPeer) < PChar(@ pENetPeerArray(host ^. peers)^[host ^. peerCount]) do
     begin
        if (currentPeer ^. state <> ENET_PEER_STATE_CONNECTED) then
          goto continuework;
@@ -409,7 +411,7 @@ continuework1:
           throttle := (bandwidth * ENET_PEER_PACKET_THROTTLE_SCALE) div dataTotal;
 
         peer := host ^. peers;
-        while PAnsiChar(peer) < PAnsiChar(@ pENetPeerArray(host ^. peers)^[host ^. peerCount]) do
+        while PChar(peer) < PChar(@ pENetPeerArray(host ^. peers)^[host ^. peerCount]) do
         begin
 
             if ((peer ^. state <> ENET_PEER_STATE_CONNECTED) and (peer ^. state <> ENET_PEER_STATE_DISCONNECT_LATER)) or
@@ -444,7 +446,8 @@ continuework2:
         end;
     end;
 
-    if (peersRemaining > 0) then begin
+    if (peersRemaining > 0) then
+    begin
       if (dataTotal <= bandwidth) then
          throttle := ENET_PEER_PACKET_THROTTLE_SCALE
        else
@@ -487,7 +490,7 @@ continuework3:
 
 
            peer := host ^. peers;
-           while PAnsiChar(peer) < PAnsiChar(@ pENetPeerArray(host ^. peers)^[host ^. peerCount]) do
+           while PChar(peer) < PChar(@ pENetPeerArray(host ^. peers)^[host ^. peerCount]) do
            begin
                if ((peer ^. state <> ENET_PEER_STATE_CONNECTED) and (peer ^. state <> ENET_PEER_STATE_DISCONNECT_LATER)) or
                    (peer ^. incomingBandwidthThrottleEpoch = timeCurrent) then
@@ -508,7 +511,7 @@ continuework4:
        end;
 
        peer := host ^. peers;
-       while PAnsiChar(peer) < PAnsiChar(@ pENetPeerArray(host ^. peers)^[host ^. peerCount]) do
+       while PChar(peer) < PChar(@ pENetPeerArray(host ^. peers)^[host ^. peerCount]) do
        begin
            if (peer ^. state <> ENET_PEER_STATE_CONNECTED) and (peer ^. state <> ENET_PEER_STATE_DISCONNECT_LATER) then
              goto continuework5;
