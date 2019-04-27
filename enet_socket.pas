@@ -13,7 +13,15 @@ unit enet_socket;
  linux socket implementaion wasn't tested.
 *)
 
+
+{$ifdef APPLE}
+{$define HAS_GETADDRINFO}
+{$define HAS_GETNAMEINFO}
+{$define HAS_INET_PTON}
+{$define HAS_INET_NTOP}
+{$define HAS_MSGHDR_FLAGS}
 {$define HAS_FCNTL}
+{$endif}
 
 interface
 
@@ -224,6 +232,71 @@ begin
 end;
 {$pop}
 
+function strtolong(str, strend:pchar):longint;
+var
+  buf: array[0..11] of char;
+  i: Integer;
+begin
+  i:=0;
+  while str<strend do begin
+    buf[i]:=str^;
+    Inc(str);
+    Inc(i);
+  end;
+  buf[i]:=#0;
+  Result:=StrToInt(buf);
+end;
+
+function enet_address_set_host_ip (address: pENetAddress; name:pchar):Integer;
+{$ifdef MSWINDOWS}
+var
+  vals: array[0..3] of enet_uint8;
+  i: Integer;
+  next: pchar;
+  val: longint;
+begin
+    fillchar(vals,sizeof(vals),0);
+
+    for i:=0 to 3 do
+    begin
+        next := name+1;
+        if name^ <> '0' then
+        begin
+            val := strtolong (name, next);
+            if (val < 0) or (val > 255) or (next = name) or (next - name > 3) then
+            begin
+              Result:=-1; exit;
+            end;
+            vals [i] := enet_uint8(val);
+        end;
+
+        if i < 3 then begin
+          if next^ <> '.' then
+          begin
+            Result:=-1; exit;
+          end;
+        end else begin
+          if next^ <> #0 then
+          begin
+            Result:=-1; exit;
+          end;
+        end;
+        name := next + 1;
+    end;
+
+    system.Move(vals,address ^. host,sizeof (enet_uint32));
+{$else}
+{$ifdef HAS_INET_PTON}
+    if 0=inet_pton (AF_INET, name, @ address ^. host)
+{$else}
+    if 0=inet_aton (name, pin_addr(@ address ^. host)
+{$endif}
+    then
+        return -1;
+{$endif}
+    Result:=0;
+end;
+
 function enet_address_set_host (address : pENetAddress; name : pchar):integer;
 var
   hostEntry : {$ifdef WINDOWS}PHostEnt{$else}THostEntry{$endif};
@@ -234,25 +307,26 @@ begin
     if (hostEntry = nil) or
         (hostEntry ^. h_addrtype <> AF_INET) then
     begin
-        host :=inet_addr (name);
-        if (host = INADDR_NONE) then
-            begin result := -1; exit; end;
-        address ^. host :=host;
+       Result:=enet_address_set_host_ip (address, name);
+       exit;
+    end;
     {$else}
     if not gethostbyname (name, hostEntry) then
     begin
         address ^.host := enet_uint32(htonl(StrToHostAddr(name).s_addr));
-        if address ^.host=0 then
-            begin result:=-1; exit; end;
-    {$endif}
-        result := 0; exit;
+        if address ^.host<>0 then
+        begin
+           result:=0; exit;
+        end;
     end;
+    {$endif}
+
     {$ifdef WINDOWS}
     address ^. host := (penet_uint32(hostEntry^.h_addr_list^))^;
-    {$else}
-    address ^. host := enet_uint32(htonl(hostEntry.Addr.s_addr));
-    {$endif}
     result := 0;
+    {$else}
+    Result:=enet_address_set_host_ip (address, name);
+    {$endif}
 end;
 
 function enet_address_get_host_ip (address : pENetAddress; name : pchar ; nameLength : enet_size_t):integer;
@@ -288,22 +362,19 @@ begin
 
     {$ifdef WINDOWS}
     hostEntry :=gethostbyaddr (@inadd, sizeof (TInAddr), AF_INET);
-    if (hostEntry = nil) then
+    if (hostEntry <> nil) then
     {$else}
-    if not GetHostByAddr (inadd, hostEntry) then
+    if GetHostByAddr (inadd, hostEntry) then
     {$endif}
-      begin
-         result := enet_address_get_host_ip (address, name, nameLength); exit;
-      end
-      else
       begin
          hostLen := {$ifdef WINDOWS}strlen (hostEntry ^. h_name){$else}Length(hostEntry.Name){$endif};
          if (hostLen >= nameLength) then
            begin Result:=-1; exit; end;
          system.Move(hostEntry {$ifdef WINDOWS} ^. h_name^ {$else}.Name[1]{$endif}, name^, hostLen + 1);
-      end;
-
-    result :=0;
+         Result:=0; exit;
+      end
+      else
+       result := enet_address_get_host_ip (address, name, nameLength);
 end;
 
 function enet_socket_bind (socket : ENetSocket; const address : pENetAddress):integer;

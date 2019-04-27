@@ -213,8 +213,10 @@ var
     outgoingCommand : pENetOutgoingCommand;
 begin
 
-    while (not enet_list_empty (@ peer ^. sentUnreliableCommands)) do
-    begin
+    if (enet_list_empty (@ peer ^. sentUnreliableCommands)) then
+      exit;
+
+    repeat
         outgoingCommand := pENetOutgoingCommand(enet_list_front (@ peer ^. sentUnreliableCommands));
         
         enet_list_remove (@ outgoingCommand ^. outgoingCommandList);
@@ -232,7 +234,13 @@ begin
         end;
 
         enet_free (outgoingCommand);
-    end;
+    until (enet_list_empty (@ peer ^. sentUnreliableCommands));
+
+    if ((peer ^. state = ENET_PEER_STATE_DISCONNECT_LATER) and
+        enet_list_empty (@ peer ^. outgoingReliableCommands) and
+        enet_list_empty (@ peer ^. outgoingUnreliableCommands) and
+        enet_list_empty (@ peer ^. sentReliableCommands)) then
+      enet_peer_disconnect (peer, peer ^. eventData);
 end;
 
 function enet_protocol_remove_sent_reliable_command (peer : pENetPeer;reliableSequenceNumber : enet_uint16;channelID : enet_uint8):ENetProtocolCommand;
@@ -852,6 +860,10 @@ begin
     if (peer ^. incomingBandwidth = 0) and (host ^. outgoingBandwidth = 0) then
       peer ^. windowSize := ENET_PROTOCOL_MAXIMUM_WINDOW_SIZE
     else
+    if (peer ^. incomingBandwidth = 0) or (host ^. outgoingBandwidth = 0) then
+      peer ^. windowSize := (ENET_MAX (peer ^. incomingBandwidth, host ^. outgoingBandwidth) div
+                             ENET_PEER_WINDOW_SIZE_SCALE) * ENET_PROTOCOL_MINIMUM_WINDOW_SIZE
+    else
       peer ^. windowSize := (ENET_MIN (peer ^. incomingBandwidth, host ^. outgoingBandwidth) div
                              ENET_PEER_WINDOW_SIZE_SCALE) * ENET_PROTOCOL_MINIMUM_WINDOW_SIZE;
 
@@ -1284,8 +1296,9 @@ function enet_protocol_receive_incoming_commands (host : pENetHost; event : pENe
 var
        receivedLength : integer;
        buffer : ENetBuffer;
+       packets : Integer;
 begin
-    while true do
+    for packets:=0 to 255 do
     begin
 
        buffer.data := @ host ^. packetData [0][0];
@@ -1501,7 +1514,8 @@ begin
     if (peer ^. state = ENET_PEER_STATE_DISCONNECT_LATER) and
         enet_list_empty (@ peer ^. outgoingReliableCommands) and
         enet_list_empty (@ peer ^. outgoingUnreliableCommands) and
-        enet_list_empty (@ peer ^. sentReliableCommands) then
+        enet_list_empty (@ peer ^. sentReliableCommands) and
+        enet_list_empty (@ peer ^. sentUnreliableCommands) then
           enet_peer_disconnect (peer, peer ^. eventData);
 end;
 
@@ -1590,10 +1604,11 @@ begin
        begin
            if (windowWrap=0) and
               (outgoingCommand ^. sendAttempts < 1) and
-              (outgoingCommand ^. reliableSequenceNumber mod ENET_PEER_RELIABLE_WINDOW_SIZE=0) and
+              (outgoingCommand ^. reliableSequenceNumber mod ENET_PEER_RELIABLE_WINDOW_SIZE = 0) and
               ( (channel ^. reliableWindows [(reliableWindow + ENET_PEER_RELIABLE_WINDOWS - 1) mod ENET_PEER_RELIABLE_WINDOWS] >= ENET_PEER_RELIABLE_WINDOW_SIZE) or
                 ((channel ^. usedReliableWindows and ((((1 shl ENET_PEER_FREE_RELIABLE_WINDOWS) - 1) shl reliableWindow) or
-                (((1 shl ENET_PEER_FREE_RELIABLE_WINDOWS) - 1) shr (ENET_PEER_RELIABLE_WINDOW_SIZE - reliableWindow))))<>0) ) then
+                (((1 shl ENET_PEER_FREE_RELIABLE_WINDOWS) - 1) shr (ENET_PEER_RELIABLE_WINDOWS - reliableWindow))))<>0)
+              ) then
                  windowWrap := 1;
          if (windowWrap<>0) then
          begin
