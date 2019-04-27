@@ -114,14 +114,14 @@ begin
    first := ENetListIterator(dataFirst);
    last := ENetListIterator(dataLast);
 
-   first^ . previous^ . next := last^ . next;
-   last^ . next^ . previous := first^ . previous;
+   first^. previous^. next := last^. next;
+   last^. next^. previous := first^. previous;
 
-   first^ . previous := position^ . previous;
-   last^ . next := position;
+   first^. previous := position^. previous;
+   last^. next := position;
 
-   first^ . previous^ . next := first;
-   position^ . previous := last;
+   first^. previous^. next := first;
+   position^. previous := last;
 
    result := first;
 end;

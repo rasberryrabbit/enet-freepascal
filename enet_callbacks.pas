@@ -44,8 +44,8 @@ begin
       if (inits^ . malloc = nil) or (inits^ . free = nil) then
         begin result := -1; exit; end;
 
-      callbacks.malloc := ENETCALLBACK_malloc(inits^ . malloc);
-      callbacks.free := ENETCALLBACK_free(inits^ . free);
+      callbacks.malloc := ENETCALLBACK_malloc(inits^. malloc);
+      callbacks.free := ENETCALLBACK_free(inits ^. free);
    end;
 
    if (inits^ . nomemory <> nil) then

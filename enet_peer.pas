@@ -5,7 +5,7 @@ unit enet_peer;
  @brief ENet peer management functions
 
  freepascal
- 1.3.12
+ 1.3.14
 *)
 
 {$GOTO ON}
@@ -157,9 +157,9 @@ begin
       fragmentCount := (packet ^. dataLength + fragmentLength - 1) div fragmentLength;
 
        if (fragmentCount > ENET_PROTOCOL_MAXIMUM_FRAGMENT_COUNT) then
-         begin
-           Result:=-1; exit;
-         end;
+       begin
+         Result:=-1; exit;
+       end;
 
        if (packet ^. flags and (ENET_PACKET_FLAG_RELIABLE or ENET_PACKET_FLAG_UNRELIABLE_FRAGMENT) = ENET_PACKET_FLAG_UNRELIABLE_FRAGMENT) and
            (channel ^. outgoingUnreliableSequenceNumber < $0FFFF) then
@@ -192,7 +192,7 @@ begin
                enet_free (fragment);
             end;
 
-           result := -1; exit;
+            result := -1; exit;
          end;
 
         fragment ^. fragmentOffset := fragmentOffset;
@@ -223,7 +223,6 @@ begin
      end;
 
      Result:=0; exit;
-
    end;
 
    command.header.channelID := channelID;
@@ -261,29 +260,28 @@ end;
 function enet_peer_receive (peer : pENetPeer; channelID : penet_uint8):pENetPacket;
 var
   incomingCommand : pENetIncomingCommand;
-  packet : pENetPacket;  
 begin
+   Result:=nil;
 
    if (enet_list_empty (@ peer ^. dispatchedCommands)) then
-     begin result := nil; exit; end;
+     exit;
 
    incomingCommand := pENetIncomingCommand (enet_list_remove (enet_list_begin (@ peer ^. dispatchedCommands)));
 
    if (channelID <> nil) then
      channelID^ := incomingCommand ^. command.header.channelID;
 
-   packet := incomingCommand^. packet;
+   Result := incomingCommand^. packet;
 
-   dec(packet ^. referenceCount);
+   Dec(Result ^. referenceCount);
 
    if (incomingCommand^. fragments <> nil) then
      enet_free (incomingCommand^. fragments);
 
    enet_free (incomingCommand);
 
-   Dec(peer ^. totalWaitingData , packet ^. dataLength);
+   Dec(peer ^. totalWaitingData , Result ^. dataLength);
 
-   result := packet;
 end;
 
 procedure enet_peer_reset_outgoing_commands (queue : pENetList);
@@ -291,14 +289,13 @@ var
   outgoingCommand : pENetOutgoingCommand;
 begin
 
-
     while (not enet_list_empty (queue)) do
     begin
        outgoingCommand := pENetOutgoingCommand (enet_list_remove (ENetListIterator(enet_list_begin (queue))));
 
        if (outgoingCommand^. packet <> nil) then
        begin
-          dec(outgoingCommand^. packet^. referenceCount);
+          Dec(outgoingCommand^. packet^. referenceCount);
 
           if (outgoingCommand^. packet^. referenceCount = 0) then
             enet_packet_destroy (outgoingCommand^. packet);
@@ -315,7 +312,7 @@ var
 begin
 
    currentCommand:=startCommand;
-   while (PAnsiChar(currentCommand)<>PAnsiChar(endCommand)) do
+   while (PChar(currentCommand)<>PChar(endCommand)) do
    begin
        incomingCommand := pENetIncomingCommand (currentCommand);
 
@@ -325,7 +322,7 @@ begin
 
        if (incomingCommand^. packet <> nil) then
        begin
-          dec(incomingCommand^. packet^. referenceCount);
+          Dec(incomingCommand^. packet^. referenceCount);
 
           if (incomingCommand^. packet^. referenceCount = 0) then
             enet_packet_destroy (incomingCommand^. packet);
@@ -367,7 +364,7 @@ begin
     if (peer^. channels <> nil) and (peer^. channelCount > 0) then
     begin
         channel := peer^. channels;
-        while PAnsiChar(channel) < PAnsiChar(@ pENetChannelArray(peer^. channels)^[peer^. channelCount]) do
+        while PChar(channel) < PChar(@ pENetChannelArray(peer^. channels)^[peer^. channelCount]) do
         begin
             enet_peer_reset_incoming_commands (@ channel^. incomingReliableCommands);
             enet_peer_reset_incoming_commands (@ channel^. incomingUnreliableCommands);
@@ -475,7 +472,8 @@ var
     command : ENetProtocol;
 begin
 
-    if (peer^. state <> ENET_PEER_STATE_CONNECTED) then exit;
+    if (peer^. state <> ENET_PEER_STATE_CONNECTED) then
+      exit;
 
     command.header.command := ENET_PROTOCOL_COMMAND_PING or ENET_PROTOCOL_COMMAND_FLAG_ACKNOWLEDGE;
     command.header.channelID := $FF;
@@ -541,7 +539,8 @@ var
     command : ENetProtocol;
 begin
 
-    if (peer^. state = ENET_PEER_STATE_DISCONNECTED) then exit;
+    if (peer^. state = ENET_PEER_STATE_DISCONNECTED) then
+      exit;
 
     if (peer^. state <> ENET_PEER_STATE_ZOMBIE) and
         (peer^. state <> ENET_PEER_STATE_DISCONNECTING) then
@@ -625,10 +624,11 @@ end;
 
 function enet_peer_queue_acknowledgement (peer : pENetPeer; command : pENetProtocol; sentTime : enet_uint16):pENetAcknowledgement;
 var
-    acknowledgement : pENetAcknowledgement;
+    //acknowledgement : pENetAcknowledgement;
     channel : pENetChannel;
     reliableWindow, currentWindow : enet_uint16;
 begin
+    Result:=nil;
 
     if (command^. header.channelID < peer^. channelCount) then
     begin
@@ -643,19 +643,17 @@ begin
           begin result := nil; exit; end;
     end;
 
-    acknowledgement := pENetAcknowledgement( enet_malloc (sizeof (ENetAcknowledgement)));
-    if (acknowledgement = nil) then begin
-      Result := nil; exit;
-    end;
+    Result := pENetAcknowledgement( enet_malloc (sizeof (ENetAcknowledgement)));
+    if (Result = nil) then
+       exit;
 
     Inc(peer^. outgoingDataTotal , sizeof (ENetProtocolAcknowledge));
 
-    acknowledgement^. sentTime := sentTime;
-    acknowledgement^. command := command^;
+    Result^. sentTime := sentTime;
+    Result^. command := command^;
 
-    enet_list_insert (enet_list_end (@ peer^. acknowledgements), pENetListNode(acknowledgement));
+    enet_list_insert (enet_list_end (@ peer^. acknowledgements), pENetListNode(Result));
 
-    result := acknowledgement;
 end;
 
 
@@ -721,24 +719,20 @@ end;
 
 
 function enet_peer_queue_outgoing_command (peer:pENetPeer; command:pENetProtocol; packet:pENetPacket; offset:enet_uint32; length:enet_uint16):pENetOutgoingCommand;
-var
-    outgoingCommand : pENetOutgoingCommand;
 begin
-    outgoingCommand := pENetOutgoingCommand ( enet_malloc (sizeof (ENetOutgoingCommand)));
-    if (outgoingCommand = nil) then begin
-      Result:=nil; exit;
-    end;
+    Result := pENetOutgoingCommand ( enet_malloc (sizeof (ENetOutgoingCommand)));
+    if (Result = nil) then
+       exit;
 
-    outgoingCommand^. command := command^;
-    outgoingCommand^. fragmentOffset := offset;
-    outgoingCommand^. fragmentLength := length;
-    outgoingCommand^. packet := packet;
+    Result^. command := command^;
+    Result^. fragmentOffset := offset;
+    Result^. fragmentLength := length;
+    Result^. packet := packet;
     if (packet <> nil) then
       Inc(packet^. referenceCount);
 
-    enet_peer_setup_outgoing_command (peer, outgoingCommand);
+    enet_peer_setup_outgoing_command (peer, Result);
 
-    result := outgoingCommand;
 end;
 
 procedure enet_peer_dispatch_incoming_unreliable_commands (peer:pENetPeer; channel:pENetChannel);
@@ -895,7 +889,6 @@ begin
     if ((command^. header.command and ENET_PROTOCOL_COMMAND_MASK) <> ENET_PROTOCOL_COMMAND_SEND_UNSEQUENCED) then
     begin
         reliableSequenceNumber := command^. header.reliableSequenceNumber;
-
         reliableWindow := reliableSequenceNumber div ENET_PEER_RELIABLE_WINDOW_SIZE;
         currentWindow := channel^. incomingReliableSequenceNumber div ENET_PEER_RELIABLE_WINDOW_SIZE;
 
@@ -913,7 +906,7 @@ begin
            goto discardCommand;
 
        currentCommand := enet_list_previous (enet_list_end (@ channel^. incomingReliableCommands));
-       while PAnsiChar(currentCommand) <> PAnsiChar( enet_list_end (@ channel^. incomingReliableCommands)) do
+       while PChar(currentCommand) <> PChar( enet_list_end (@ channel^. incomingReliableCommands)) do
        begin
           incomingCommand := pENetIncomingCommand (currentCommand);
 
@@ -948,7 +941,7 @@ continuework2:
          goto discardCommand;
 
        currentCommand := enet_list_previous (enet_list_end (@ channel^. incomingUnreliableCommands));
-       while PAnsiChar(currentCommand) <> PAnsiChar(enet_list_end (@ channel^. incomingUnreliableCommands)) do
+       while PChar(currentCommand) <> PChar(enet_list_end (@ channel^. incomingUnreliableCommands)) do
        begin
           incomingCommand := pENetIncomingCommand( currentCommand);
 

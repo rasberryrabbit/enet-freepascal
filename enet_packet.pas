@@ -6,8 +6,8 @@ unit enet_packet;
 
  freepascal
 
- 1.3.12
- - fix enet_packet_destroy
+ 1.3.14
+
 *)
 
 interface
@@ -34,39 +34,35 @@ implementation
 *)
 
 function enet_packet_create (data : pointer; dataLength : enet_size_t; flags : enet_uint32):pENetPacket;
-var
-  packet : pENetPacket;
 begin
-    packet  := pENetPacket (enet_malloc (sizeof (ENetPacket)));
-    if packet=nil then begin
-       Result:=nil; exit;
-    end;
+    Result := pENetPacket (enet_malloc (sizeof (ENetPacket)));
+    if Result=nil then
+      exit;
 
     if (flags and ENET_PACKET_FLAG_NO_ALLOCATE)<>0 then
-      packet ^. data := penet_uint8 (data)
+      Result ^. data := penet_uint8 (data)
     else
     if (dataLength <= 0) then
-      packet ^.data:=nil
+      Result ^.data:=nil
     else
     begin
-       packet ^. data := penet_uint8 (enet_malloc (dataLength));
-       if (packet ^. data = nil) then
+       Result ^. data := penet_uint8 (enet_malloc (dataLength));
+       if (Result ^. data = nil) then
        begin
-          enet_free (packet);
-          result := nil; exit;
+          enet_free (Result);
+          Result := nil; exit;
        end;
 
        if (data <> nil) then
-         system.Move(data^, packet ^. data^, dataLength);
+         system.Move(data^, Result ^. data^, dataLength);
     end;
 
-    packet ^. referenceCount := 0;
-    packet ^. flags := flags;
-    packet ^. dataLength := dataLength;
-    packet ^. freeCallback := nil;
-    packet ^. userData := nil;
+    Result ^. referenceCount := 0;
+    Result ^. flags := flags;
+    Result ^. dataLength := dataLength;
+    Result ^. freeCallback := nil;
+    Result ^. userData := nil;
 
-    result := packet;
 end;
 
 (** Destroys the packet and deallocates its data.
@@ -128,7 +124,8 @@ var
 begin
   Result := 0;
 
-  for bit:=0 to bits-1 do begin
+  for bit:=0 to bits-1 do
+  begin
     if (val and 1)<>0 then
       Result := Result or enet_uint32(1 shl (bits - 1 - bit));
     val := val shr 1;
@@ -172,9 +169,9 @@ begin
     while (bufferCount > 0) do
     begin
         data := penet_uint8 (buffers ^. data);
-        dataEnd := penet_uint8 (PAnsiChar(data)+ buffers ^. dataLength);
+        dataEnd := penet_uint8 (PChar(data)+ buffers ^. dataLength);
 
-        while PAnsiChar(data)<PAnsiChar(dataEnd) do
+        while PChar(data)<PChar(dataEnd) do
         begin
             crc := (crc shr 8) xor crcTable [(crc and $FF) xor data^];
             inc(data);

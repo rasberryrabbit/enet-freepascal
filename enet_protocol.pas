@@ -4,12 +4,8 @@ unit enet_protocol;
  @file  protocol.c
  @brief ENet protocol functions
 
- 1.3.12 freepascal
+ 1.3.14 freepascal
 
- - fix enet_host_service mistranslation
- - fix enet_protocol_send_acknowledgements
-
- - cleanup
 *)
 
 {$GOTO ON}
@@ -223,7 +219,7 @@ begin
 
         if (outgoingCommand ^. packet <> nil) then
         begin
-           dec(outgoingCommand ^. packet ^. referenceCount);
+           Dec(outgoingCommand ^. packet ^. referenceCount);
 
            if (outgoingCommand ^. packet ^. referenceCount = 0) then
            begin
@@ -256,7 +252,7 @@ begin
     wasSent:=1;
 
     currentCommand := enet_list_begin (@ peer ^. sentReliableCommands);
-    while PAnsiChar(currentCommand)<>PAnsiChar(enet_list_end (@ peer ^. sentReliableCommands)) do
+    while PChar(currentCommand)<>PChar(enet_list_end (@ peer ^. sentReliableCommands)) do
     begin
        outgoingCommand := pENetOutgoingCommand (currentCommand);
 
@@ -266,10 +262,10 @@ begin
        currentCommand := enet_list_next (currentCommand);
     end;
 
-    if PAnsiChar(currentCommand)=PAnsiChar(enet_list_end (@ peer ^. sentReliableCommands)) then
+    if PChar(currentCommand)=PChar(enet_list_end (@ peer ^. sentReliableCommands)) then
     begin
       currentCommand := enet_list_begin (@ peer ^. outgoingReliableCommands);
-      while PAnsiChar(currentCommand)<>PAnsiChar(enet_list_end (@ peer ^. outgoingReliableCommands)) do
+      while PChar(currentCommand)<>PChar(enet_list_end (@ peer ^. outgoingReliableCommands)) do
        begin
           outgoingCommand := pENetOutgoingCommand (currentCommand);
 
@@ -281,7 +277,7 @@ begin
           currentCommand := enet_list_next (currentCommand);
        end;
 
-      if PAnsiChar(currentCommand)=PAnsiChar(enet_list_end (@ peer ^. outgoingReliableCommands)) then
+      if PChar(currentCommand)=PChar(enet_list_end (@ peer ^. outgoingReliableCommands)) then
        begin result := ENET_PROTOCOL_COMMAND_NONE; exit; end;
 
       wasSent:=0;
@@ -296,7 +292,7 @@ begin
        reliableWindow := reliableSequenceNumber div ENET_PEER_RELIABLE_WINDOW_SIZE;
        if (channel ^. reliableWindows [reliableWindow] > 0) then
        begin
-          dec( channel ^. reliableWindows [reliableWindow]);
+          Dec( channel ^. reliableWindows [reliableWindow]);
           if (0 = channel ^. reliableWindows [reliableWindow]) then
             channel ^. usedReliableWindows := channel ^. usedReliableWindows and not(1 shl reliableWindow);
        end;
@@ -309,9 +305,9 @@ begin
     if (outgoingCommand ^. packet <> nil) then
     begin
        if wasSent<>0 then
-         dec(peer ^. reliableDataInTransit , outgoingCommand ^. fragmentLength);
+         Dec(peer ^. reliableDataInTransit , outgoingCommand ^. fragmentLength);
 
-       dec( outgoingCommand ^. packet ^. referenceCount);
+       Dec( outgoingCommand ^. packet ^. referenceCount);
 
        if (outgoingCommand ^. packet ^. referenceCount = 0) then
        begin
@@ -351,7 +347,7 @@ begin
       begin result := nil; exit; end;
 
     currentPeer := host ^. peers;
-    while PAnsiChar(currentPeer)< PAnsiChar(@(pENetPeerArray(host ^. peers)^[host ^. peerCount])) do
+    while PChar(currentPeer)< PChar(@(pENetPeerArray(host ^. peers)^[host ^. peerCount])) do
     begin
        if (currentPeer ^. state = ENET_PEER_STATE_DISCONNECTED) then
        begin
@@ -411,7 +407,7 @@ begin
     Peer ^. incomingSessionID := outgoingSessionID;
 
     channel := Peer ^. channels;
-    while PAnsiChar(channel)< PAnsiChar(@(pENetChannelArray(Peer ^. channels)^[channelCount])) do
+    while PChar(channel)< PChar(@(pENetChannelArray(Peer ^. channels)^[channelCount])) do
     begin
         channel ^. outgoingReliableSequenceNumber := 0;
         channel ^. outgoingUnreliableSequenceNumber := 0;
@@ -502,7 +498,7 @@ begin
       begin result := -1; exit; end;
 
     dataLength := ENET_NET_TO_HOST_16 (command ^. sendReliable.dataLength);
-    Inc(PAnsiChar(currentData^) , dataLength);
+    Inc(PChar(currentData^) , dataLength);
     if (dataLength > host ^. maximumPacketSize) or
        (currentData^ < host ^. receivedData) or
        (currentData^ > @ penet_uint8array(host ^. receivedData)[host ^. receivedDataLength]) then
@@ -525,7 +521,7 @@ begin
       begin result := -1; exit; end;
 
     dataLength := ENET_NET_TO_HOST_16 (command ^. sendUnsequenced.dataLength);
-    inc(PAnsiChar(currentData^) , dataLength);
+    inc(PChar(currentData^) , dataLength);
     if (dataLength > host ^. maximumPacketSize) or
        (currentData^ < host ^. receivedData) or
        (currentData^ > @ penet_uint8array(host ^. receivedData)[host ^. receivedDataLength]) then
@@ -570,7 +566,7 @@ begin
       begin result := -1; exit; end;
 
     dataLength := ENET_NET_TO_HOST_16 (command ^. sendUnreliable.dataLength);
-    inc(PAnsiChar(currentData^), dataLength);
+    inc(PChar(currentData^), dataLength);
     if (dataLength > host ^. maximumPacketSize) or
        (currentData^ < host ^. receivedData) or
        (currentData^ > @ penet_uint8array(host ^. receivedData)[host ^. receivedDataLength]) then
@@ -632,7 +628,7 @@ begin
       begin result := -1; exit; end;
 
     currentCommand := enet_list_previous (enet_list_end (@channel ^. incomingReliableCommands));
-    while PAnsiChar(currentCommand) <> PAnsiChar(enet_list_end (@ channel ^. incomingReliableCommands)) do
+    while PChar(currentCommand) <> PChar(enet_list_end (@ channel ^. incomingReliableCommands)) do
     begin
        incomingCommand := pENetIncomingCommand(currentCommand);
 
@@ -682,8 +678,8 @@ continuework1:
        if (fragmentOffset + fragmentLength > startCommand ^. packet ^. dataLength) then
          fragmentLength := startCommand ^. packet ^. dataLength - fragmentOffset;
 
-       system.Move ((PAnsiChar(command) + sizeof (ENetProtocolSendFragment))^,
-             (PAnsiChar(startCommand ^. packet ^. data) + fragmentOffset)^,
+       system.Move ((PChar(command) + sizeof (ENetProtocolSendFragment))^,
+             (PChar(startCommand ^. packet ^. data) + fragmentOffset)^,
                fragmentLength);
 
        if (startCommand ^. fragmentsRemaining <= 0) then
@@ -820,8 +816,8 @@ continue1:
        if (fragmentOffset + fragmentLength > startCommand ^. packet ^. dataLength) then
          fragmentLength := startCommand ^. packet ^. dataLength - fragmentOffset;
 
-       system.Move((PAnsiChar(command) + sizeof (ENetProtocolSendFragment))^,
-                   (PAnsiChar(startCommand ^. packet ^. data) + fragmentOffset)^,
+       system.Move((PChar(command) + sizeof (ENetProtocolSendFragment))^,
+                   (PChar(startCommand ^. packet ^. data) + fragmentOffset)^,
                     fragmentLength);
 
         if (startCommand ^. fragmentsRemaining <= 0) then
@@ -1168,14 +1164,14 @@ begin
        inc(peer ^. incomingDataTotal , host ^. receivedDataLength);
     end;
 
-    currentData := penet_uint8(PAnsiChar(@host ^. receivedData[0]) + headerSize);
+    currentData := penet_uint8(PChar(@host ^. receivedData[0]) + headerSize);
 
-    while PAnsiChar(currentData)< PAnsiChar(@ penet_uint8array(host ^. receivedData)[host ^. receivedDataLength]) do
+    while PChar(currentData)< PChar(@ penet_uint8array(host ^. receivedData)[host ^. receivedDataLength]) do
     begin
 
        command := pENetProtocol (currentData);
 
-       if (PAnsiChar(currentData) + sizeof (ENetProtocolCommandHeader) > PAnsiChar(@ penet_uint8array(host ^. receivedData)[host ^. receivedDataLength])) then
+       if (PChar(currentData) + sizeof (ENetProtocolCommandHeader) > PChar(@ penet_uint8array(host ^. receivedData)[host ^. receivedDataLength])) then
          break;
 
        commandNumber := command ^. header.command and ENET_PROTOCOL_COMMAND_MASK;
@@ -1183,10 +1179,10 @@ begin
          break;
 
        commandSize := commandSizes [commandNumber];
-       if (commandSize = 0) or (PAnsiChar(currentData) + commandSize > PAnsiChar(@ penet_uint8array(host ^. receivedData)[host ^. receivedDataLength])) then
+       if (commandSize = 0) or (PChar(currentData) + commandSize > PChar(@ penet_uint8array(host ^. receivedData)[host ^. receivedDataLength])) then
          break;
 
-       inc(PAnsiChar(currentData), commandSize);
+       inc(PChar(currentData), commandSize);
 
        if (peer = nil) and (commandNumber <> ENET_PROTOCOL_COMMAND_CONNECT) then
          break;
@@ -1372,8 +1368,8 @@ begin
 
     while (currentAcknowledgement <> enet_list_end (@ peer ^. acknowledgements)) do
     begin
-       if (PAnsiChar(command) >= PAnsiChar( @ host ^. commands [sizeof(host ^. commands) div sizeof(ENetProtocol)])) or
-          (PAnsiChar(buffer) >= PAnsiChar( @ host ^. buffers [sizeof(host ^. buffers) div sizeof(ENetBuffer)])) or
+       if (PChar(command) >= PChar( @ host ^. commands [sizeof(host ^. commands) div sizeof(ENetProtocol)])) or
+          (PChar(buffer) >= PChar( @ host ^. buffers [sizeof(host ^. buffers) div sizeof(ENetBuffer)])) or
            (peer ^. mtu - host ^. packetSize < sizeof (ENetProtocolAcknowledge)) then
        begin
           host ^. continueSending := 1;
@@ -1408,8 +1404,8 @@ begin
        inc(buffer);
     end;
 
-    host ^. commandCount := (PAnsiChar(command)-PAnsiChar( @host ^. commands[0])) div sizeof(ENetProtocol);
-    host ^. bufferCount := (PAnsiChar(buffer)-PAnsiChar( @host ^. buffers[0])) div sizeof(ENetBuffer);
+    host ^. commandCount := (PChar(command)-PChar( @host ^. commands[0])) div sizeof(ENetProtocol);
+    host ^. bufferCount := (PChar(buffer)-PChar( @host ^. buffers[0])) div sizeof(ENetBuffer);
 end;
 
 procedure enet_protocol_send_unreliable_outgoing_commands (host : pENetHost;peer : pENetPeer);
@@ -1426,14 +1422,14 @@ begin
 
     currentCommand := enet_list_begin (@ peer ^. outgoingUnreliableCommands);
 
-    while (PAnsiChar(currentCommand) <> PAnsiChar(enet_list_end (@ peer ^. outgoingUnreliableCommands))) do
+    while (PChar(currentCommand) <> PChar(enet_list_end (@ peer ^. outgoingUnreliableCommands))) do
     begin
 
        outgoingCommand := pENetOutgoingCommand (currentCommand);
        commandSize := commandSizes [outgoingCommand ^. command.header.command and ENET_PROTOCOL_COMMAND_MASK];
 
-       if (PAnsiChar(command) >= PAnsiChar( @ host ^.commands [sizeof(host ^. commands) div sizeof(ENetProtocol)])) or
-          (PAnsiChar(buffer)+sizeof(ENetBuffer) >= PAnsiChar( @ host ^. buffers [sizeof(host ^. buffers) div sizeof(ENetBuffer)])) or
+       if (PChar(command) >= PChar( @ host ^.commands [sizeof(host ^. commands) div sizeof(ENetProtocol)])) or
+          (PChar(buffer)+sizeof(ENetBuffer) >= PChar( @ host ^. buffers [sizeof(host ^. buffers) div sizeof(ENetBuffer)])) or
           (peer ^. mtu - host ^. packetSize < commandSize) or
           ( (outgoingCommand ^. packet <> nil) and
             (peer ^. mtu - host ^. packetSize < commandSize + outgoingCommand ^. fragmentLength) ) then
@@ -1466,7 +1462,7 @@ begin
              enet_list_remove (@ outgoingCommand ^. outgoingCommandList);
              enet_free (outgoingCommand);
 
-             if (PAnsiChar(currentCommand) = PAnsiChar(enet_list_end (@ peer ^. outgoingUnreliableCommands))) then
+             if (PChar(currentCommand) = PChar(enet_list_end (@ peer ^. outgoingUnreliableCommands))) then
                break;
 
              outgoingCommand := pENetOutgoingCommand (currentCommand);
@@ -1494,7 +1490,7 @@ begin
        begin
           inc( buffer );
 
-          buffer ^. data := PAnsiChar(outgoingCommand ^. packet ^. data) + outgoingCommand ^. fragmentOffset;
+          buffer ^. data := PChar(outgoingCommand ^. packet ^. data) + outgoingCommand ^. fragmentOffset;
           buffer ^. dataLength := outgoingCommand ^. fragmentLength;
 
           inc(host ^. packetSize , buffer ^. dataLength);
@@ -1508,8 +1504,8 @@ begin
        inc(buffer);
     end;
 
-    host ^. commandCount := (PAnsiChar(command) - PAnsiChar( @host ^. commands[0])) div sizeof(ENetProtocol);
-    host ^. bufferCount := (PAnsiChar(buffer) - PAnsiChar( @host ^. buffers[0])) div sizeof(ENetBuffer);
+    host ^. commandCount := (PChar(command) - PChar( @host ^. commands[0])) div sizeof(ENetProtocol);
+    host ^. bufferCount := (PChar(buffer) - PChar( @host ^. buffers[0])) div sizeof(ENetBuffer);
 
     if (peer ^. state = ENET_PEER_STATE_DISCONNECT_LATER) and
         enet_list_empty (@ peer ^. outgoingReliableCommands) and
@@ -1528,7 +1524,7 @@ begin
     currentCommand := enet_list_begin (@ peer ^. sentReliableCommands);
     insertPosition := enet_list_begin (@ peer ^. outgoingReliableCommands);
 
-    while (PAnsiChar(currentCommand) <> PAnsiChar(enet_list_end (@ peer ^. sentReliableCommands))) do
+    while (PChar(currentCommand) <> PChar(enet_list_end (@ peer ^. sentReliableCommands))) do
     begin
        outgoingCommand := pENetOutgoingCommand(currentCommand);
 
@@ -1592,7 +1588,7 @@ begin
 
     currentCommand := enet_list_begin (@ peer ^. outgoingReliableCommands);
 
-    while (PAnsiChar(currentCommand) <> PAnsiChar(enet_list_end (@ peer ^. outgoingReliableCommands))) do
+    while (PChar(currentCommand) <> PChar(enet_list_end (@ peer ^. outgoingReliableCommands))) do
     begin
        outgoingCommand := pENetOutgoingCommand(currentCommand);
 
@@ -1638,8 +1634,8 @@ begin
       canPing := 0;
 
       commandSize := commandSizes [outgoingCommand ^. command.header.command and ENET_PROTOCOL_COMMAND_MASK];
-      if (PAnsiChar(command) >= PAnsiChar( @ host ^. commands [sizeof (host ^. commands) div sizeof (ENetProtocol)])) or
-         (PAnsiChar(buffer)+SizeOf(ENetBuffer) >= PAnsiChar( @ host ^. buffers [sizeof (host ^. buffers) div sizeof (ENetBuffer)])) or
+      if (PChar(command) >= PChar( @ host ^. commands [sizeof (host ^. commands) div sizeof (ENetProtocol)])) or
+         (PChar(buffer)+SizeOf(ENetBuffer) >= PChar( @ host ^. buffers [sizeof (host ^. buffers) div sizeof (ENetBuffer)])) or
          (peer ^. mtu - host ^. packetSize < commandSize) or
          ((outgoingCommand ^. packet <> nil) and
           (enet_uint16(peer ^. mtu - host ^. packetSize) < enet_uint16(commandSize + outgoingCommand ^. fragmentLength))) then
@@ -1685,7 +1681,7 @@ begin
        begin
           inc(buffer);
           
-          buffer ^. data := PAnsiChar(outgoingCommand ^. packet ^. data) + outgoingCommand ^. fragmentOffset;
+          buffer ^. data := PChar(outgoingCommand ^. packet ^. data) + outgoingCommand ^. fragmentOffset;
           buffer ^. dataLength := outgoingCommand ^. fragmentLength;
 
           inc(host ^. packetSize , outgoingCommand ^. fragmentLength);
@@ -1699,8 +1695,8 @@ begin
        inc(buffer);
     end;
 
-    host ^. commandCount := (PAnsiChar(command)-PAnsiChar( @host ^. commands[0])) div sizeof(ENetProtocol);
-    host ^. bufferCount := (PAnsiChar(buffer)-PAnsiChar( @host ^. buffers[0])) div sizeof(ENetBuffer);
+    host ^. commandCount := (PChar(command)-PChar( @host ^. commands[0])) div sizeof(ENetProtocol);
+    host ^. bufferCount := (PChar(buffer)-PChar( @host ^. buffers[0])) div sizeof(ENetBuffer);
 
     Result:=canPing;
 end;
@@ -1726,7 +1722,7 @@ begin
     while (host ^. continueSending <> 0) do begin
     host ^. continueSending := 0;
     currentPeer := host ^. peers;
-    while PAnsiChar(currentPeer) < PAnsiChar(@ pENetPeerArray(host ^. peers)^[host ^. peerCount]) do
+    while PChar(currentPeer) < PChar(@ pENetPeerArray(host ^. peers)^[host ^. peerCount]) do
     begin
         if (currentPeer ^. state = ENET_PEER_STATE_DISCONNECTED) or
             (currentPeer ^. state = ENET_PEER_STATE_ZOMBIE) then
