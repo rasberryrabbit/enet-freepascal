@@ -1314,7 +1314,7 @@ begin
        host ^. receivedData := @host ^. packetData [0][0];
        host ^. receivedDataLength := receivedLength;
 
-       Inc(host ^. totalReceivedData, receivedLength);
+       Inc(host ^. totalReceivedData, longword(receivedLength));
        Inc(host ^. totalReceivedPackets);
 
        if (host ^. interceptfunc <> nil) then
@@ -1844,7 +1844,7 @@ begin
         if (sentLength < 0) then
           begin result:=-1; exit; end;
 
-        Inc(host ^. totalSentData , sentLength);
+        Inc(host ^. totalSentData , longword(sentLength));
         Inc(host ^. totalSentPackets);
 
 continuework:
