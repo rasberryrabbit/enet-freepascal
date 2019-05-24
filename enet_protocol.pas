@@ -1368,8 +1368,10 @@ begin
 
     while (currentAcknowledgement <> enet_list_end (@ peer ^. acknowledgements)) do
     begin
-       if (PChar(command) >= PChar( @ host ^. commands [sizeof(host ^. commands) div sizeof(ENetProtocol)])) or
-          (PChar(buffer) >= PChar( @ host ^. buffers [sizeof(host ^. buffers) div sizeof(ENetBuffer)])) or
+(*       if (PChar(command) >= PChar( @ host ^. commands [sizeof(host ^. commands) div sizeof(ENetProtocol)])) or
+          (PChar(buffer) >= PChar( @ host ^. buffers [sizeof(host ^. buffers) div sizeof(ENetBuffer)])) or *)
+       if (PChar(command) >= PChar( @ host ^. commands[0]) + sizeof(host ^. commands) div sizeof(ENetProtocol) * sizeof(ENetProtocol)) or
+          (PChar(buffer) >= PChar( @ host ^. buffers [0]) + sizeof(host ^. buffers) div sizeof(ENetBuffer) * sizeof(ENetBuffer)) or
            (peer ^. mtu - host ^. packetSize < sizeof (ENetProtocolAcknowledge)) then
        begin
           host ^. continueSending := 1;
@@ -1428,8 +1430,10 @@ begin
        outgoingCommand := pENetOutgoingCommand (currentCommand);
        commandSize := commandSizes [outgoingCommand ^. command.header.command and ENET_PROTOCOL_COMMAND_MASK];
 
-       if (PChar(command) >= PChar( @ host ^.commands [sizeof(host ^. commands) div sizeof(ENetProtocol)])) or
-          (PChar(buffer)+sizeof(ENetBuffer) >= PChar( @ host ^. buffers [sizeof(host ^. buffers) div sizeof(ENetBuffer)])) or
+(*       if (PChar(command) >= PChar( @ host ^.commands [sizeof(host ^. commands) div sizeof(ENetProtocol)])) or
+          (PChar(buffer)+sizeof(ENetBuffer) >= PChar( @ host ^. buffers [sizeof(host ^. buffers) div sizeof(ENetBuffer)])) or *)
+       if (PChar(command) >= PChar( @ host ^.commands[0]) + sizeof(host ^. commands) div sizeof(ENetProtocol) * sizeof(ENetProtocol)) or
+          (PChar(buffer)+sizeof(ENetBuffer) >= PChar( @ host ^. buffers[0]) + sizeof(host ^. buffers) div sizeof(ENetBuffer) * sizeof(ENetBuffer)) or
           (peer ^. mtu - host ^. packetSize < commandSize) or
           ( (outgoingCommand ^. packet <> nil) and
             (peer ^. mtu - host ^. packetSize < commandSize + outgoingCommand ^. fragmentLength) ) then
@@ -1634,8 +1638,10 @@ begin
       canPing := 0;
 
       commandSize := commandSizes [outgoingCommand ^. command.header.command and ENET_PROTOCOL_COMMAND_MASK];
-      if (PChar(command) >= PChar( @ host ^. commands [sizeof (host ^. commands) div sizeof (ENetProtocol)])) or
-         (PChar(buffer)+SizeOf(ENetBuffer) >= PChar( @ host ^. buffers [sizeof (host ^. buffers) div sizeof (ENetBuffer)])) or
+(*      if (PChar(command) >= PChar( @ host ^. commands [sizeof (host ^. commands) div sizeof (ENetProtocol)])) or
+         (PChar(buffer)+SizeOf(ENetBuffer) >= PChar( @ host ^. buffers [sizeof (host ^. buffers) div sizeof (ENetBuffer)])) or *)
+      if (PChar(command) >= PChar( @ host ^. commands [0]) + sizeof (host ^. commands) div sizeof (ENetProtocol) * sizeof(ENetProtocol)) or
+         (PChar(buffer)+SizeOf(ENetBuffer) >= PChar( @ host ^. buffers [0]) + sizeof (host ^. buffers) div sizeof (ENetBuffer) * sizeof(ENetBuffer)) or
          (peer ^. mtu - host ^. packetSize < commandSize) or
          ((outgoingCommand ^. packet <> nil) and
           (enet_uint16(peer ^. mtu - host ^. packetSize) < enet_uint16(commandSize + outgoingCommand ^. fragmentLength))) then
